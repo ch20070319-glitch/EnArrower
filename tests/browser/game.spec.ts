@@ -176,6 +176,21 @@ test.describe('阻挡与机关', () => {
     expect(after.current.state.remaining).not.toContain('sc');
   });
 
+  test('AC15 键盘聚焦开关箭头预览关联闸门', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 4);
+    await page.evaluate(() => {
+      const s = [...document.querySelectorAll<SVGGElement>('.arrow')].find((x) =>
+        x.getAttribute('aria-label')?.includes('◇ 开关'),
+      )!;
+      s.focus();
+    });
+    await expect(page.locator('.gate.is-preview')).toHaveCount(1);
+    await expect(page.locator('.gate.is-preview .gate-label')).toHaveText('将开启');
+    const before = await readSave(page);
+    expect(before.current.state.remaining).toEqual(['s', 'b', 'c']);
+  });
+
   test('AC15 查看机关模式点击只预览不移动', async ({ page }) => {
     await fresh(page, true);
     await openLevel(page, 4);
@@ -331,6 +346,23 @@ test.describe('响应式与减少动态', () => {
       expect(board!.x).toBeGreaterThanOrEqual(0);
     });
   }
+
+  test('AC17 动画中改变窗口尺寸不锁死、结果一致', async ({ page }) => {
+    await fresh(page);
+    await page.click('#btn-start');
+    await page.evaluate(() => {
+      document.querySelector<SVGGElement>('.arrow')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await page.waitForTimeout(80);
+    await page.setViewportSize({ width: 500, height: 700 });
+    await page.waitForTimeout(120);
+    await page.setViewportSize({ width: 1100, height: 800 });
+    await page.waitForTimeout(700);
+    const save = await readSave(page);
+    expect(save.current.state.remaining).toEqual(['b', 'c']);
+    expect(save.current.history.length).toBe(1);
+    await expect(page.locator('#btn-restart')).toBeEnabled();
+  });
 
   test('AC17 减少动态效果下规则结果一致', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
