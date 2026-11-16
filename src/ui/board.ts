@@ -50,13 +50,13 @@ export class BoardView {
     const defs = el('defs');
     defs.innerHTML = `
       <linearGradient id="grad-teal" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#4ba08d"/><stop offset="1" stop-color="#2f7264"/>
+        <stop offset="0" stop-color="#5cb3a0"/><stop offset="0.55" stop-color="#3e8e7e"/><stop offset="1" stop-color="#2c6b5e"/>
       </linearGradient>
       <linearGradient id="grad-amber" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#e6a945"/><stop offset="1" stop-color="#c07d1c"/>
+        <stop offset="0" stop-color="#f0bc63"/><stop offset="0.55" stop-color="#d9932c"/><stop offset="1" stop-color="#b0741a"/>
       </linearGradient>
       <linearGradient id="grad-violet" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#9b76d7"/><stop offset="1" stop-color="#6f4bab"/>
+        <stop offset="0" stop-color="#ab8ce0"/><stop offset="0.55" stop-color="#8a63c9"/><stop offset="1" stop-color="#68459f"/>
       </linearGradient>`;
     this.svg.appendChild(defs);
 
@@ -121,11 +121,12 @@ export class BoardView {
       role: 'img',
       'aria-label': `${GROUP_SYMBOL[group]} 闸门，${open ? '开启' : '关闭'}，第 ${x + 1} 列第 ${y + 1} 行`,
     });
-    node.appendChild(el('rect', { x: -38, y: -38, width: 76, height: 76, rx: 16 }));
-    const sym = el('text', { x: 0, y: 12 });
+    node.appendChild(el('rect', { x: -34, y: -34, width: 68, height: 68, rx: 14 }));
+    node.appendChild(el('rect', { class: 'gate-inner', x: -24, y: -24, width: 48, height: 48, rx: 9 }));
+    const sym = el('text', { x: 0, y: 10 });
     sym.textContent = GROUP_SYMBOL[group];
     node.appendChild(sym);
-    const label = el('text', { class: 'gate-label', x: 0, y: -48 });
+    const label = el('text', { class: 'gate-label', x: 0, y: -44 });
     node.appendChild(label);
     return node;
   }
@@ -150,13 +151,16 @@ export class BoardView {
       el('rect', { class: 'arrow-hit', x: -back - 50, y: -50, width: back + 100, height: 100 }),
     );
     shape.appendChild(
-      el('rect', { class: 'arrow-body', x: -back - 34, y: -16, width: back + 26, height: 32, rx: 16 }),
+      el('rect', { class: 'arrow-body', x: -back - 44, y: -10, width: back + 40, height: 20, rx: 10 }),
     );
-    shape.appendChild(el('path', { class: 'arrow-head', d: 'M 42 0 L -12 -30 L -12 30 Z' }));
+    shape.appendChild(
+      el('rect', { class: 'arrow-sheen', x: -back - 38, y: -6.5, width: back + 28, height: 4, rx: 2 }),
+    );
+    shape.appendChild(el('path', { class: 'arrow-head', d: 'M 40 0 L -8 -22 L -8 22 Z' }));
     if (arrow.group) {
-      const bx = -back / 2 - 21;
-      shape.appendChild(el('circle', { class: 'arrow-badge', cx: bx, cy: 0, r: 15 }));
-      const sym = el('text', { class: 'arrow-badge-sym', x: bx, y: 7 });
+      const bx = -back / 2 - 24;
+      shape.appendChild(el('circle', { class: 'arrow-badge', cx: bx, cy: 0, r: 10 }));
+      const sym = el('text', { class: 'arrow-badge-sym', x: bx, y: 5 });
       sym.textContent = GROUP_SYMBOL[arrow.group];
       shape.appendChild(sym);
     }

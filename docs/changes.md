@@ -31,3 +31,10 @@
 ## 未改动说明
 - 未删除任何需求或弱化断言来换取测试通过；所有失败均修复后以相同用例复测。
 - 工作区外文件（用户附件等）只读确认存在，未修改。
+## 阶段 5：棋盘扩大与视觉精修（用户追加需求，commit 见 evidence-index）
+- src/levels/levels.ts：12 关重设为 7×7（l11 修复环形依赖 I10）；样例夹具不变。
+- src/ui/board.ts：箭头细化（身 20 高/尾 −back−44/头 48×44/描边 3/高光条/徽章 r10 居中，I11）；闸门 68 双框。
+- src/style.css：board-wrap 与 controls 640px；箭头/闸门样式同步；gate-pulse 2.5→5.5。
+- 测试断言未改动、未弱化；81 单元 + 13 关重放 + 66 浏览器 + build 复测全通过。
+- evidence/screenshots/01–08 重截并目检；evidence/test-results/ 刷新。
+- docs：decisions D10、issues I10/I11、development-log 阶段 5、acceptance 备注、README 尺寸说明。

@@ -328,7 +328,7 @@ body {
 .screen--game { display: flex; flex-direction: column; }
 .board-stage { display: flex; justify-content: center; }
 .board-wrap {
-  width: min(100%, 520px);
+  width: min(100%, 640px);
   background: var(--board);
   border: 1px solid var(--line);
   border-radius: 22px;
@@ -342,18 +342,23 @@ body {
 /* 闸门 */
 .gate rect {
   fill: var(--surface);
-  stroke-width: 3;
+  stroke-width: 2.5;
   transition: fill 0.25s ease, opacity 0.25s ease;
 }
-.gate text { font-size: 34px; font-weight: 800; text-anchor: middle; pointer-events: none; }
+.gate text { font-size: 30px; font-weight: 800; text-anchor: middle; pointer-events: none; }
+.gate-inner { fill: none; stroke-width: 1.5; opacity: 0.5; transition: fill 0.25s ease, opacity 0.25s ease; }
 .gate--diamond rect { stroke: var(--amber); }
 .gate--diamond text { fill: var(--amber-deep); }
+.gate--diamond .gate-inner { stroke: var(--amber); }
 .gate--circle rect { stroke: var(--violet); }
 .gate--circle text { fill: var(--violet-deep); }
+.gate--circle .gate-inner { stroke: var(--violet); }
 .gate--closed.gate--diamond rect { fill: var(--amber-soft); }
 .gate--closed.gate--circle rect { fill: var(--violet-soft); }
+.gate--closed .gate-inner { fill: var(--surface); opacity: 0.75; }
 .gate--open rect { stroke-dasharray: 7 6; opacity: 0.62; }
 .gate--open text { opacity: 0.55; }
+.gate--open .gate-inner { stroke-dasharray: 4 4; opacity: 0.35; }
 .gate-label {
   font-size: 17px;
   font-weight: 700;
@@ -369,8 +374,8 @@ body {
 .gate.is-preview .gate-label { opacity: 1; }
 .gate.is-preview rect { opacity: 1; animation: gate-pulse 1.1s ease-in-out infinite; }
 @keyframes gate-pulse {
-  0%, 100% { stroke-width: 3; }
-  50% { stroke-width: 6; }
+  0%, 100% { stroke-width: 2.5; }
+  50% { stroke-width: 5.5; }
 }
 .gate.is-blocker rect { stroke: var(--coral); fill: var(--coral-soft); animation: blocker-flash 0.6s ease 2; }
 .gate.is-blocker text { fill: var(--coral); }
@@ -388,12 +393,13 @@ body {
 .arrow--normal .arrow-body, .arrow--normal .arrow-head { fill: url(#grad-teal); }
 .arrow--diamond .arrow-body, .arrow--diamond .arrow-head { fill: url(#grad-amber); }
 .arrow--circle .arrow-body, .arrow--circle .arrow-head { fill: url(#grad-violet); }
-.arrow-head { stroke-linejoin: round; stroke-width: 5; }
+.arrow-head { stroke-linejoin: round; stroke-width: 3; }
 .arrow--normal .arrow-head { stroke: var(--teal-deep); }
 .arrow--diamond .arrow-head { stroke: var(--amber-deep); }
 .arrow--circle .arrow-head { stroke: var(--violet-deep); }
-.arrow-badge { fill: #fdfbf4; opacity: 0.95; }
-.arrow-badge-sym { font-size: 19px; font-weight: 800; text-anchor: middle; pointer-events: none; }
+.arrow-sheen { fill: #ffffff; opacity: 0.22; pointer-events: none; }
+.arrow-badge { fill: #fdfbf4; opacity: 0.96; }
+.arrow-badge-sym { font-size: 14px; font-weight: 800; text-anchor: middle; pointer-events: none; }
 .arrow--diamond .arrow-badge-sym { fill: var(--amber-deep); }
 .arrow--circle .arrow-badge-sym { fill: var(--violet-deep); }
 .arrow:hover .arrow-shape { filter: drop-shadow(0 3px 6px rgba(60, 71, 89, 0.28)); }
@@ -429,7 +435,7 @@ body {
 .controls {
   display: flex;
   gap: 10px;
-  width: min(100%, 520px);
+  width: min(100%, 640px);
   margin: 0 auto;
 }
 
@@ -532,7 +538,7 @@ html { scrollbar-color: #cfc5ac var(--paper-deep); scrollbar-width: thin; }
 }
 @media (min-width: 700px) {
   .screen--game .subbar { margin-bottom: 24px; }
-  .board-wrap { width: min(100%, 540px); }
+  .board-wrap { width: min(100%, 640px); }
 }
 
 /* ---------- 减少动态效果 ---------- */

@@ -10,7 +10,7 @@
 | browser.txt | `npm run test:browser`（Playwright，22 用例 × desktop/mobile-390/mobile-360） | 66 passed |
 | build.txt | `npm run build`（tsc --noEmit && vite build） | 成功，无类型错误 |
 
-## 截图（evidence/screenshots/）
+## 截图（evidence/screenshots/，阶段 5 重截并目检）
 | 文件 | 内容 |
 |---|---|
 | 01-home-desktop.png | 首页（桌面 1280） |
@@ -38,6 +38,8 @@
 | 02372b6 | 66 浏览器测试、DeepSeek 脚本、全部文档与 README |
 | 7ea580a | 回填阶段 4 哈希 |
 | 53a36db | .gitignore 锚定修复 + 最终复测证据入库（I9） |
+| d4eaf4d | 证据索引补全提交链 |
+| （阶段 5 提交，哈希待回填） | 7×7 关卡重设、箭头细化、机关精修、640px、复测证据与文档 |
 
 ## 待补（用户留存，不伪造）
 - 用户聊天完整截图/导出。
