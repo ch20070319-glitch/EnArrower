@@ -39,7 +39,7 @@
 - evidence/screenshots/01–08 重截并目检；evidence/test-results/ 刷新。
 - docs：decisions D10、issues I10/I11、development-log 阶段 5、acceptance 备注、README 尺寸说明。
 
-## 阶段 6：追加六个机关关（用户追加需求，commit 待回填）
+## 阶段 6：追加六个机关关（用户追加需求，commit 8745f7e）
 - src/levels/levels.ts：新增 l13 回马枪 / l14 双闸连开 / l15 开关接力 / l16 错钥 / l17 双锁互衔 / l18 终局回环（均 7×7，带重放解法）；l01–l12 与样例不变。
 - src/ui/app.ts：首页关卡数文案随 LEVELS.length 自适应；末关通关隐藏“下一关”（配合 I14 修复）。
 - src/style.css：`[hidden]{display:none!important}` 修复 hidden 被 .btn display 覆盖（I14）。
