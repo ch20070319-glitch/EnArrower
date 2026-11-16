@@ -70,3 +70,10 @@
 - 措施：无需改代码；等待 >632ms 后兜底正确提交、释放锁、写存档（实测 remaining 减一、history=1）。
 - 复测：隐藏页实测兜底生效；Playwright 可见页 rAF 正常、AC02 中间位移采样通过。
 - 状态：已验证（兜底设计有效）。
+## I9 .gitignore 误忽略测试证据目录
+- 目标：交付要求“测试代码和实际测试结果”入库可追溯。
+- 表现：最终核查 `git ls-files evidence` 发现 evidence/test-results/ 四个原始输出未被 Git 跟踪。
+- 原因（事实）：.gitignore 的 `test-results/` 未锚定根目录，匹配了任意层级同名目录（含 evidence/test-results/）。
+- 措施：改为 `/test-results/`（playwright-report/、blob-report/ 同样锚定），仅忽略 Playwright 根级输出。
+- 复测：`git check-ignore` 不再命中 evidence/test-results/；四个证据文件随最终提交入库。
+- 状态：已解决。
