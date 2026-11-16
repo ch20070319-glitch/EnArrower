@@ -1,0 +1,28 @@
+{
+  "name": "enarrower",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "EnArrower - 轻松解压的箭头顺序解谜网页游戏",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:browser": "playwright test",
+    "validate:levels": "tsx scripts/validate-levels.ts",
+    "review:deepseek": "node scripts/deepseek-review.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}
