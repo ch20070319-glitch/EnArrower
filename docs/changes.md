@@ -21,7 +21,7 @@
 - scripts/capture-evidence.mjs + evidence/screenshots/01–08：真实截图并逐张目检。
 - 修复：首页 hero 元素错位（fill-mode/transform）、移动端按钮换行、通关覆盖层阻断撤销（新增 btn-win-undo）、2 处浏览器夹具选择器/关卡选择错误。见 issues.md I3–I5、I7。
 
-## 阶段 4：补充测试、DeepSeek 脚本与文档（本次提交，哈希见 evidence-index.md）
+## 阶段 4：补充测试、DeepSeek 脚本与文档（commit 02372b6）
 - tests/browser/game.spec.ts：新增 AC15 键盘聚焦预览、AC17 动画中改尺寸 + reduced-motion → 22 用例 × 3 = 66 项通过（evidence/test-results/browser.txt 更新）。
 - scripts/deepseek-review.mjs + docs/prompts/deepseek-review-request.md：单次调用、脱敏记录、无密钥标记 not_called；实跑产出 evidence/api/review-2026-11-16T08-42-29-353Z.json（status=not_called，未发生真实 API 调用）。
 - .env.example：模型默认值由过时的 deepseek-chat 更正为 deepseek-flash（2026-11-16 核对官方文档，见 issues.md I6）。
