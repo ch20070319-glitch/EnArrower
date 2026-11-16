@@ -38,3 +38,14 @@
 - 测试断言未改动、未弱化；81 单元 + 13 关重放 + 66 浏览器 + build 复测全通过。
 - evidence/screenshots/01–08 重截并目检；evidence/test-results/ 刷新。
 - docs：decisions D10、issues I10/I11、development-log 阶段 5、acceptance 备注、README 尺寸说明。
+
+## 阶段 6：追加六个机关关（用户追加需求，commit 待回填）
+- src/levels/levels.ts：新增 l13 回马枪 / l14 双闸连开 / l15 开关接力 / l16 错钥 / l17 双锁互衔 / l18 终局回环（均 7×7，带重放解法）；l01–l12 与样例不变。
+- src/ui/app.ts：首页关卡数文案随 LEVELS.length 自适应；末关通关隐藏“下一关”（配合 I14 修复）。
+- src/style.css：`[hidden]{display:none!important}` 修复 hidden 被 .btn display 覆盖（I14）。
+- tests/unit/levels.test.ts：18 关逐关校验/重放/提示首步 → 99 项通过。
+- tests/browser/game.spec.ts：clickArrow 助手 + AC21/AC22/AC23 → 25 用例 ×3 视口 = 75 项通过。
+- scripts/capture-evidence.mjs：18 关解锁种子、选关页 1080 高 + 1100ms 等待、新增 09-game-l18-desktop。
+- 修复：l14 箭尾越界（I12）、l18 同列互挡环（I13）、末关 hidden 按钮缺陷（I14）；断言未弱化。
+- evidence：test-results 四件刷新（99/19/75/build）；screenshots 01/02/04/05/06 重截 + 09 新增，目检通过。
+- docs：requirements §5/§7 追加说明、decisions D11、issues I12–I14、development-log 阶段 6、acceptance AC12 更新 + AC21–AC23、evidence-index、report-outline、README 计数与提交链。

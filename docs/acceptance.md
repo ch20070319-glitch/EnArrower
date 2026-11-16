@@ -1,4 +1,4 @@
-# 验收表（AC01~AC20）
+# 验收表（AC01~AC23）
 
 初始一律“未验证”；下表为 2026-11-16 实际执行后的状态。证据路径见 `evidence-index.md`。
 移动设备为 Playwright 仿真（非真机）；真机验证另列待补。
@@ -16,7 +16,7 @@
 | AC09 | 中途重开 | 初始布局+门状态+空历史、保留解锁 | 通过 | unit 重开；browser AC09 remaining/open/history 复位 |
 | AC10 | 初始/中途可解请求提示 | 提示箭头合法且移动后仍可解 | 通过 | unit 求解器与提示；browser AC10 is-hint=1 且不自动移动 |
 | AC11 | 样例先 A 后提示 | 即使 C 可移动也识别无解 | 通过 | unit fixture“先 A 后提示 dead-end”；browser AC11 第7关先开关后提示“无法通关” |
-| AC12 | 自动验证 12 关+逐步重放 | 数据合法、均清空 | 通过 | validate-levels 13 条全通过；levels.test 逐关重放；levels.txt |
+| AC12 | 自动验证 18 关+逐步重放 | 数据合法、均清空 | 通过 | validate-levels 19 条全通过（18 关+样例）；levels.test 逐关重放；levels.txt |
 | AC13 | 通关/进行中/撤销后刷新 | 恢复稳定状态+历史+解锁 | 通过 | browser AC13 刷新后 remaining=[b,c] history=1 undo enabled |
 | AC14 | 动画中刷新/坏档/存储不可用 | 不恢复半途、不锁死、有说明 | 通过 | browser AC14 坏档回退+动画中刷新回上一稳定；unit storage 写入失败/不可用 |
 | AC15 | 悬停/聚焦开关、手机查看模式 | 显示关联门+下一状态、预览不移动 | 通过 | browser AC15 聚焦预览 gate.is-preview+“将开启”；查看模式点击不移动 |
@@ -25,9 +25,13 @@
 | AC18 | 实际调用 DeepSeek 完成审查 | 脱敏请求/响应/模型/实录 | 未完成 | 脚本+配置完备；无密钥 status=not_called（evidence/api/review-*.json）；待用户配置 |
 | AC19 | 核查指令/截图/问题/阶段提交 | 可追溯、失败修复成对、无伪造 | 部分通过 | prompts/00 文本+issues 成对+3 阶段提交+evidence；完整用户截图待补 |
 | AC20 | 教师可访问 Gitee 最终检出 | 代码/README/配置/报告一致、commit 可定位 | 未完成 | 本地 git 已就绪；Gitee 仓库/授权待外部办理 |
+| AC21 | 第13关先走挡路箭再走开关 | 死局提示正确、门状态不变 | 通过 | browser AC21 三视口：f→s 后 hint 报“无法通关”、open.diamond=false、remaining=[a,b,c] |
+| AC22 | 第17关双组互衔完整解法 | 七步清空、通关并解锁 18 | 通过 | browser AC22 三视口：sc→sd→e→a→b→d→c 后 win 可见、completed 含 l17、unlocked 含 l18 |
+| AC23 | 第18关（末关）九步通关 | 通关且无“下一关”按钮 | 通过 | browser AC23 三视口：九步清空、win 可见、#btn-next 隐藏、remaining=[] |
 
 ## 说明
 - 阶段 5（2026-11-16 用户追加）：12 关重设为 7×7、显示 640px、箭头细化与机关精修后，AC01–AC17 以相同断言全量复测通过（81 单元 / 13 关重放 / 66 浏览器 / build）；截图重截目检。网格范围以用户确认的 D10 为准，回归样例仍 5×3。
+- 阶段 6（2026-11-16 用户追加「再多创建机关关卡」）：新增 l13–l18 后全量复测 99 单元 / 19 条重放（18 关+样例）/ 75 浏览器（25 用例 ×3 视口）/ build 全通过；AC21–AC23 为新增用例，首跑 AC23 暴露末关 hidden 按钮缺陷（I14）修复后复测通过。截图 04 扩为 18 格、新增 09（第 18 关）并重截目检。
 - “通过（仿真）”指 Playwright 移动视口仿真，不等同真机；真机待补。
 - AC18/AC20 为外部待办，不阻塞本地功能；AC19 的完整截图/导出由用户留存。
 - 所有“通过”均有对应实际执行的测试或脚本输出，未执行者不写通过。

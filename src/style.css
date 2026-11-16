@@ -75,6 +75,7 @@ body {
 }
 
 .screen[hidden] { display: none; }
+[hidden] { display: none !important; }
 
 /* ---------- 通用按钮 ---------- */
 .btn {

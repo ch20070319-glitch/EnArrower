@@ -93,7 +93,7 @@ export class App {
     $('home-progress').textContent =
       this.save.completed.length > 0
         ? `已完成 ${this.save.completed.length} / ${LEVELS.length} 关`
-        : '12 个原创关卡，从第一支箭头开始。';
+        : `${LEVELS.length} 个原创关卡，从第一支箭头开始。`;
   }
 
   private showLevels(): void {

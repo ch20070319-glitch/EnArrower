@@ -8,7 +8,7 @@ async function fresh(page: Page, unlockAll = false) {
     ({ key, unlockAll }) => {
       localStorage.removeItem(key);
       if (unlockAll) {
-        const ids = Array.from({ length: 12 }, (_, i) => `l${String(i + 1).padStart(2, '0')}`);
+        const ids = Array.from({ length: 18 }, (_, i) => `l${String(i + 1).padStart(2, '0')}`);
         localStorage.setItem(
           key,
           JSON.stringify({ schemaVersion: 1, completed: [], unlocked: ids, current: null }),
@@ -65,6 +65,16 @@ async function sampleExit(page: Page, ariaFragment: string) {
     });
     return { samples, removed, max: Math.max(...samples), distinct: new Set(samples.map((s) => Math.round(s))).size };
   }, ariaFragment);
+}
+
+/** 按关卡内箭头 id 点击并等待动画提交完成。 */
+async function clickArrow(page: Page, id: string) {
+  await page.evaluate((arrowId) => {
+    const node = document.querySelector<SVGGElement>(`.arrow-mover[data-arrow-id="${arrowId}"] .arrow`);
+    if (!node) throw new Error('arrow not found: ' + arrowId);
+    node.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  }, id);
+  await page.waitForTimeout(700);
 }
 
 test.describe('入口与构建', () => {
@@ -375,5 +385,39 @@ test.describe('响应式与减少动态', () => {
     const save = await readSave(page);
     expect(save.current.state.remaining).toEqual(['b', 'c']);
     expect(save.current.history.length).toBe(1);
+  });
+});
+test.describe('进阶机关关卡（13-18）', () => {
+  test('AC21 第13关先清挡路再走开关 → 关门死局被提示识别', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 13);
+    await clickArrow(page, 'f');
+    await clickArrow(page, 's');
+    await page.click('#btn-hint');
+    await expect(page.locator('#status')).toContainText('无法通关');
+    const save = await readSave(page);
+    expect(save.current.state.open.diamond).toBe(false);
+    expect(save.current.state.remaining).toEqual(['a', 'b', 'c']);
+  });
+
+  test('AC22 第17关跨组链条完整通关并解锁第18关', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 17);
+    for (const id of ['sc', 'sd', 'e', 'a', 'b', 'd', 'c']) await clickArrow(page, id);
+    await expect(page.locator('#win-overlay')).toBeVisible();
+    const save = await readSave(page);
+    expect(save.completed).toContain('l17');
+    expect(save.unlocked).toContain('l18');
+  });
+
+  test('AC23 第18关（末关）通关后无下一关按钮', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 18);
+    for (const id of ['f', 'sd', 'a', 'b', 'sc', 'c', 'g', 'd', 'e']) await clickArrow(page, id);
+    await expect(page.locator('#win-overlay')).toBeVisible();
+    await expect(page.locator('#btn-next')).toBeHidden();
+    const save = await readSave(page);
+    expect(save.completed).toContain('l18');
+    expect(save.current.state.remaining).toEqual([]);
   });
 });

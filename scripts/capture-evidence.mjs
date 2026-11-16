@@ -13,7 +13,7 @@ const KEY = 'enarrower.save';
 const allUnlocked = JSON.stringify({
   schemaVersion: 1,
   completed: ['l01', 'l02', 'l03'],
-  unlocked: Array.from({ length: 12 }, (_, i) => `l${String(i + 1).padStart(2, '0')}`),
+  unlocked: Array.from({ length: 18 }, (_, i) => `l${String(i + 1).padStart(2, '0')}`),
   current: null,
 });
 
@@ -55,13 +55,13 @@ await shot('02-home-mobile-360', { width: 360, height: 780, mobile: true });
 
 // 第12关（两组机关，桌面）
 {
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 });
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 1080 }, deviceScaleFactor: 2 });
   const page = await ctx.newPage();
   await page.goto(BASE);
   await page.evaluate(({ k, v }) => localStorage.setItem(k, v), { k: KEY, v: allUnlocked });
   await page.reload();
   await page.click('#btn-levels');
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(1100);
   await page.screenshot({ path: `${OUT}/04-levels-desktop.png` });
   await page.click('.level-tile:nth-child(12)');
   await page.waitForTimeout(500);
@@ -76,6 +76,21 @@ await shot('02-home-mobile-360', { width: 360, height: 780, mobile: true });
   await page.screenshot({ path: `${OUT}/06-inspect-preview.png` });
   await ctx.close();
   console.log('captured 04/05/06');
+}
+
+// 第18关（进阶两组机关，桌面）
+{
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 });
+  const page = await ctx.newPage();
+  await page.goto(BASE);
+  await page.evaluate(({ k, v }) => localStorage.setItem(k, v), { k: KEY, v: allUnlocked });
+  await page.reload();
+  await page.click('#btn-levels');
+  await page.click('.level-tile:nth-child(18)');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${OUT}/09-game-l18-desktop.png` });
+  await ctx.close();
+  console.log('captured 09-game-l18-desktop');
 }
 
 // 通关弹窗（桌面）

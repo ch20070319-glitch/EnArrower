@@ -5,22 +5,23 @@
 ## 测试结果（evidence/test-results/）
 | 文件 | 内容 | 结果 |
 |---|---|---|
-| unit.txt | `npm test`（Vitest，tests/unit 4 文件） | 81 passed |
-| levels.txt | `npm run validate:levels`（12 关 + 样例，校验+求解+逐步重放） | 13/13 通过 |
-| browser.txt | `npm run test:browser`（Playwright，22 用例 × desktop/mobile-390/mobile-360） | 66 passed |
+| unit.txt | `npm test`（Vitest，tests/unit 4 文件） | 99 passed |
+| levels.txt | `npm run validate:levels`（18 关 + 样例，校验+求解+逐步重放） | 19/19 通过 |
+| browser.txt | `npm run test:browser`（Playwright，25 用例 × desktop/mobile-390/mobile-360） | 75 passed |
 | build.txt | `npm run build`（tsc --noEmit && vite build） | 成功，无类型错误 |
 
-## 截图（evidence/screenshots/，阶段 5 重截并目检）
+## 截图（evidence/screenshots/，阶段 6 重截并目检）
 | 文件 | 内容 |
 |---|---|
-| 01-home-desktop.png | 首页（桌面 1280） |
+| 01-home-desktop.png | 首页（桌面 1280，文案 18 关） |
 | 02-home-mobile-360.png | 首页（360 移动仿真） |
 | 03-game-l01-desktop.png | 第 1 关棋盘（桌面） |
-| 04-levels-desktop.png | 选关页（完成/解锁/锁定三态） |
+| 04-levels-desktop.png | 选关页 18 格（完成/解锁/锁定三态，1280×1080） |
 | 05-game-l12-desktop.png | 第 12 关双组机关棋盘 |
 | 06-inspect-preview.png | 查看机关模式预览（闸门高亮 + 将开启/将关闭） |
 | 07-win-desktop.png | 通关反馈覆盖层 |
 | 08-game-l11-mobile-360.png | 第 11 关（360 移动仿真，控件 2×2） |
+| 09-game-l18-desktop.png | 第 18 关终局回环（双组三门九箭，桌面） |
 
 ## API 记录（evidence/api/）
 - review-2026-11-16T08-42-29-353Z.json：`npm run review:deepseek` 实跑记录，status=not_called（环境无 DEEPSEEK_API_KEY）。**真实 API 调用尚未发生**；配置密钥后重跑将生成脱敏请求/响应/usage 记录。raw/ 目录已 gitignore。
@@ -40,6 +41,8 @@
 | 53a36db | .gitignore 锚定修复 + 最终复测证据入库（I9） |
 | d4eaf4d | 证据索引补全提交链 |
 | 0acfdb5 | 7×7 关卡重设、箭头细化、机关精修、640px、复测证据与文档 |
+| dfe961b | 回填阶段 5 提交哈希 |
+| 待回填 | 阶段 6：l13–l18 六个机关关 + AC21–AC23 + I12–I14 修复 + 证据/文档同步 |
 
 ## 待补（用户留存，不伪造）
 - 用户聊天完整截图/导出。

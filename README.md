@@ -11,7 +11,7 @@
 - 开关箭头（◇ 琥珀 / ○ 紫，符号+颜色双重区分）：先按移动前门状态判定路径，成功离场后整组切换一次；每关 ≤2 组、≤4 闸门格。
 - 机关预览：桌面悬停 / 键盘聚焦高亮关联闸门并标注“将开启/将关闭”；移动端“查看机关”模式下点击只预览不移动。
 - 无限撤销（含闸门状态完整恢复，通关后可撤销但不收回解锁）、重开（保留完成/解锁记录）、提示（记忆化求解器搜索完整解法，只高亮“走后可通关”的箭头；死局时建议撤销/重开）。
-- 12 个原创固定关卡（1–3 基础 → 4–6 开门 → 7–9 关门顺序 → 10–12 双组组合），全部经规则引擎逐步重放验证可解。
+- 18 个原创固定关卡（1–3 基础 → 4–6 开门 → 7–9 关门顺序 → 10–12 双组组合 → 13–15 单组进阶 → 16–18 双组进阶），全部经规则引擎逐步重放验证可解。
 - 入口 / 游戏 / 通关 / 选关四界面；选关区分已完成、已解锁、未解锁；通关反馈在最后一支动画结束后出现。
 - 存档：schemaVersion 校验，损坏/不匹配/不可用安全回退并提示；动画中刷新恢复上一稳定状态；写入失败仍可继续游戏。
 - 可访问性：控件文字/aria 名称、键盘聚焦与 Enter/Space 触发、role=status 实时通知、prefers-reduced-motion 支持；快捷键 Z 撤销 / R 重开 / H 提示 / Esc 返回。
@@ -36,9 +36,9 @@ npm run preview        # http://localhost:4173
 
 ## 测试（均已实际执行）
 ```bash
-npm test               # Vitest 单元测试：81 passed（规则/求解器/会话/存档/关卡）
-npm run validate:levels# 12 关 + 样例：校验 + 求解 + 逐步重放，13/13 通过
-npm run test:browser   # Playwright：22 用例 × 3 视口 = 66 passed（需先 install chromium）
+npm test               # Vitest 单元测试：99 passed（规则/求解器/会话/存档/18 关）
+npm run validate:levels# 18 关 + 样例：校验 + 求解 + 逐步重放，19/19 通过
+npm run test:browser   # Playwright：25 用例 × 3 视口 = 75 passed（需先 install chromium）
 ```
 原始输出存于 `evidence/test-results/`；真实截图存于 `evidence/screenshots/`。浏览器测试为真实操作（含动画中间位移的逐帧采样），移动视口为仿真而非真机。
 
@@ -71,9 +71,9 @@ npm run review:deepseek
 `docs/`：requirements / decisions / development-log / issues / acceptance / changes / evidence-index / api-usage / report-outline / prompts（含用户指令原文留存）。全部开发工作由 Qoder 实际完成。
 
 ## Gitee 提交准备清单
-- [x] 源码 + 12 关 + 锁文件（package-lock.json 已提交）
+- [x] 源码 + 18 关 + 锁文件（package-lock.json 已提交）
 - [x] .gitignore：node_modules/、dist/、.env*（保留 .env.example）、/test-results/、/playwright-report/、evidence/api/raw/
-- [x] 阶段提交：2e3811f（骨架）→ 9a06a0d（引擎+81 单元测试）→ 97cad4a（UI+60 浏览器测试）→ 02372b6（文档+66 浏览器测试）→ 0acfdb5（7×7+视觉精修）
+- [x] 阶段提交：2e3811f（骨架）→ 9a06a0d（引擎+81 单元测试）→ 97cad4a（UI+60 浏览器测试）→ 02372b6（文档+66 浏览器测试）→ 0acfdb5（7×7+视觉精修）→ 阶段 6（l13–l18 机关关+75 浏览器测试，哈希见 docs/evidence-index.md）
 - [x] README / 测试证据 / 课程文档齐备
 - [ ] 创建 Gitee 仓库并配置推送授权（用户操作）
 - [ ] `git remote add origin <仓库地址>` → `git push -u origin main`（用户操作）
