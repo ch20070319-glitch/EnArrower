@@ -1,0 +1,230 @@
+import { LevelDef } from '../core/types';
+
+/**
+ * 固定规则回归样例（需求文档 §5）：宽 5 高 3，左上角 (0,0)。
+ * 预期：初始 B 被 C 阻挡；C→B→A 通关；先 A 后无解；A→C 后 B 被关闭的门阻挡。
+ * 仅作测试夹具与机制演示，不在正式 12 关之内。
+ */
+export const SAMPLE_LEVEL: LevelDef = {
+  id: 'fixture-sample',
+  index: 0,
+  name: '规则样例',
+  goal: '回归夹具：开关关门顺序',
+  width: 5,
+  height: 3,
+  arrows: [
+    { id: 'A', head: { x: 0, y: 0 }, dir: 'right', len: 1, group: 'diamond' },
+    { id: 'B', head: { x: 0, y: 2 }, dir: 'right', len: 1 },
+    { id: 'C', head: { x: 2, y: 2 }, dir: 'up', len: 1 },
+  ],
+  mechanisms: [{ group: 'diamond', initialOpen: true, gates: [{ x: 3, y: 2 }] }],
+};
+
+export const LEVELS: LevelDef[] = [
+  {
+    id: 'l01',
+    index: 1,
+    name: '初次见面',
+    goal: '认识箭头：点击任意一支，让它沿朝向滑出棋盘。',
+    width: 5,
+    height: 3,
+    arrows: [
+      { id: 'a', head: { x: 1, y: 1 }, dir: 'right', len: 1 },
+      { id: 'b', head: { x: 3, y: 0 }, dir: 'down', len: 1 },
+      { id: 'c', head: { x: 1, y: 2 }, dir: 'right', len: 2 },
+    ],
+    mechanisms: [],
+  },
+  {
+    id: 'l02',
+    index: 2,
+    name: '让一让',
+    goal: '箭头会互相挡路：先请挡路的箭头离场。',
+    width: 5,
+    height: 3,
+    arrows: [
+      { id: 'a', head: { x: 0, y: 1 }, dir: 'right', len: 1 },
+      { id: 'b', head: { x: 2, y: 1 }, dir: 'up', len: 1 },
+      { id: 'c', head: { x: 3, y: 2 }, dir: 'left', len: 2 },
+      { id: 'd', head: { x: 0, y: 0 }, dir: 'right', len: 1 },
+    ],
+    mechanisms: [],
+  },
+  {
+    id: 'l03',
+    index: 3,
+    name: '排好队',
+    goal: '长箭头占多格：找到链条的起点，依次疏通。',
+    width: 6,
+    height: 4,
+    arrows: [
+      { id: 'a', head: { x: 2, y: 3 }, dir: 'right', len: 3 },
+      { id: 'b', head: { x: 4, y: 2 }, dir: 'up', len: 2 },
+      { id: 'c', head: { x: 4, y: 0 }, dir: 'right', len: 1 },
+      { id: 'd', head: { x: 1, y: 0 }, dir: 'down', len: 1 },
+      { id: 'e', head: { x: 0, y: 1 }, dir: 'left', len: 1 },
+    ],
+    mechanisms: [],
+  },
+  {
+    id: 'l04',
+    index: 4,
+    name: '开门钥匙',
+    goal: '带 ◇ 的开关箭头离场后会切换闸门：先开门，再放行。',
+    width: 5,
+    height: 3,
+    arrows: [
+      { id: 's', head: { x: 0, y: 0 }, dir: 'right', len: 1, group: 'diamond' },
+      { id: 'b', head: { x: 1, y: 2 }, dir: 'right', len: 2 },
+      { id: 'c', head: { x: 4, y: 1 }, dir: 'down', len: 1 },
+    ],
+    mechanisms: [{ group: 'diamond', initialOpen: false, gates: [{ x: 3, y: 2 }] }],
+  },
+  {
+    id: 'l05',
+    index: 5,
+    name: '两扇门',
+    goal: '一个开关控制同组所有闸门：一次离场，两处通行。',
+    width: 6,
+    height: 4,
+    arrows: [
+      { id: 's', head: { x: 0, y: 0 }, dir: 'down', len: 1, group: 'diamond' },
+      { id: 'a', head: { x: 2, y: 1 }, dir: 'right', len: 1 },
+      { id: 'b', head: { x: 2, y: 3 }, dir: 'right', len: 2 },
+      { id: 'c', head: { x: 5, y: 0 }, dir: 'left', len: 1 },
+    ],
+    mechanisms: [
+      { group: 'diamond', initialOpen: false, gates: [{ x: 3, y: 1 }, { x: 4, y: 3 }] },
+    ],
+  },
+  {
+    id: 'l06',
+    index: 6,
+    name: '长箭出门',
+    goal: '开关箭头也可能被挡：先清路，再拿钥匙。',
+    width: 6,
+    height: 4,
+    arrows: [
+      { id: 's', head: { x: 2, y: 0 }, dir: 'right', len: 3, group: 'diamond' },
+      { id: 'a', head: { x: 2, y: 2 }, dir: 'right', len: 3 },
+      { id: 'b', head: { x: 5, y: 1 }, dir: 'down', len: 2 },
+      { id: 'c', head: { x: 0, y: 3 }, dir: 'right', len: 1 },
+      { id: 'd', head: { x: 4, y: 3 }, dir: 'up', len: 1 },
+    ],
+    mechanisms: [{ group: 'diamond', initialOpen: false, gates: [{ x: 3, y: 2 }] }],
+  },
+  {
+    id: 'l07',
+    index: 7,
+    name: '先走后关',
+    goal: '门现在开着，但开关离场后会关上：谁必须赶在关门前通过？',
+    width: 6,
+    height: 3,
+    arrows: [
+      { id: 'a', head: { x: 1, y: 1 }, dir: 'right', len: 2 },
+      { id: 's', head: { x: 2, y: 0 }, dir: 'right', len: 2, group: 'diamond' },
+      { id: 'b', head: { x: 5, y: 2 }, dir: 'up', len: 1 },
+      { id: 'c', head: { x: 0, y: 2 }, dir: 'right', len: 1 },
+    ],
+    mechanisms: [{ group: 'diamond', initialOpen: true, gates: [{ x: 3, y: 1 }] }],
+  },
+  {
+    id: 'l08',
+    index: 8,
+    name: '关门前清空',
+    goal: '开关自己也被挡着：规划一条让所有通路在关门前用完的顺序。',
+    width: 6,
+    height: 4,
+    arrows: [
+      { id: 'a', head: { x: 0, y: 2 }, dir: 'right', len: 1 },
+      { id: 'b', head: { x: 4, y: 2 }, dir: 'down', len: 1 },
+      { id: 'c', head: { x: 1, y: 3 }, dir: 'right', len: 2 },
+      { id: 's', head: { x: 4, y: 0 }, dir: 'left', len: 2, group: 'diamond' },
+      { id: 'd', head: { x: 0, y: 0 }, dir: 'down', len: 1 },
+    ],
+    mechanisms: [{ group: 'diamond', initialOpen: true, gates: [{ x: 2, y: 2 }] }],
+  },
+  {
+    id: 'l09',
+    index: 9,
+    name: '双开关',
+    goal: '同组两个开关各切换一次：数一数，门需要被切换几次？',
+    width: 6,
+    height: 4,
+    arrows: [
+      { id: 's1', head: { x: 0, y: 0 }, dir: 'right', len: 1, group: 'diamond' },
+      { id: 's2', head: { x: 0, y: 3 }, dir: 'right', len: 1, group: 'diamond' },
+      { id: 'a', head: { x: 1, y: 2 }, dir: 'right', len: 2 },
+      { id: 'b', head: { x: 5, y: 1 }, dir: 'up', len: 1 },
+      { id: 'c', head: { x: 2, y: 1 }, dir: 'down', len: 1 },
+    ],
+    mechanisms: [{ group: 'diamond', initialOpen: false, gates: [{ x: 3, y: 2 }] }],
+  },
+  {
+    id: 'l10',
+    index: 10,
+    name: '两组钥匙',
+    goal: '◇ 与 ○ 互不影响：一组要开，一组要赶在关门前通过。',
+    width: 6,
+    height: 4,
+    arrows: [
+      { id: 'sd', head: { x: 0, y: 0 }, dir: 'right', len: 1, group: 'diamond' },
+      { id: 'sc', head: { x: 5, y: 2 }, dir: 'left', len: 1, group: 'circle' },
+      { id: 'a', head: { x: 1, y: 1 }, dir: 'right', len: 2 },
+      { id: 'b', head: { x: 2, y: 3 }, dir: 'right', len: 2 },
+      { id: 'c', head: { x: 4, y: 0 }, dir: 'down', len: 1 },
+      { id: 'd', head: { x: 0, y: 3 }, dir: 'up', len: 1 },
+    ],
+    mechanisms: [
+      { group: 'diamond', initialOpen: false, gates: [{ x: 2, y: 1 }] },
+      { group: 'circle', initialOpen: true, gates: [{ x: 4, y: 3 }] },
+    ],
+  },
+  {
+    id: 'l11',
+    index: 11,
+    name: '交错通行',
+    goal: '两把钥匙各自开门，但拿钥匙的路也被挡着：理顺两条链。',
+    width: 7,
+    height: 4,
+    arrows: [
+      { id: 'sd', head: { x: 0, y: 0 }, dir: 'down', len: 1, group: 'diamond' },
+      { id: 'sc', head: { x: 6, y: 0 }, dir: 'down', len: 1, group: 'circle' },
+      { id: 'a', head: { x: 2, y: 1 }, dir: 'right', len: 2 },
+      { id: 'b', head: { x: 3, y: 2 }, dir: 'right', len: 2 },
+      { id: 'c', head: { x: 2, y: 3 }, dir: 'right', len: 3 },
+      { id: 'd', head: { x: 5, y: 3 }, dir: 'up', len: 1 },
+      { id: 'e', head: { x: 4, y: 0 }, dir: 'left', len: 1 },
+    ],
+    mechanisms: [
+      { group: 'diamond', initialOpen: false, gates: [{ x: 3, y: 1 }] },
+      { group: 'circle', initialOpen: false, gates: [{ x: 5, y: 2 }] },
+    ],
+  },
+  {
+    id: 'l12',
+    index: 12,
+    name: '毕业典礼',
+    goal: '三扇门、两把钥匙、八支箭头：把学到的一切串起来。',
+    width: 7,
+    height: 5,
+    arrows: [
+      { id: 'sd', head: { x: 1, y: 0 }, dir: 'right', len: 2, group: 'diamond' },
+      { id: 'f', head: { x: 5, y: 0 }, dir: 'down', len: 1 },
+      { id: 'a', head: { x: 1, y: 2 }, dir: 'right', len: 2 },
+      { id: 'b', head: { x: 4, y: 4 }, dir: 'right', len: 2 },
+      { id: 'sc', head: { x: 6, y: 3 }, dir: 'up', len: 1, group: 'circle' },
+      { id: 'c', head: { x: 2, y: 1 }, dir: 'right', len: 2 },
+      { id: 'd', head: { x: 0, y: 4 }, dir: 'right', len: 1 },
+      { id: 'e', head: { x: 3, y: 3 }, dir: 'up', len: 1 },
+    ],
+    mechanisms: [
+      { group: 'diamond', initialOpen: false, gates: [{ x: 2, y: 2 }, { x: 6, y: 4 }] },
+      { group: 'circle', initialOpen: true, gates: [{ x: 4, y: 1 }] },
+    ],
+  },
+];
+
+export function levelById(id: string): LevelDef | undefined {
+  return LEVELS.find((l) => l.id === id);
+}
