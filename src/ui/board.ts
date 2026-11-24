@@ -35,9 +35,11 @@ export class BoardView {
   private arrowsLayer: SVGGElement;
   private gatesLayer: SVGGElement;
   private relayLayer: SVGGElement;
+  private lampLayer: SVGGElement;
   private arrowNodes = new Map<string, SVGGElement>();
   private gateNodes = new Map<string, SVGGElement>();
   private relayNodes = new Map<string, SVGLineElement>();
+  private lampNodes = new Map<string, SVGGElement>();
   private cellNodes = new Map<string, SVGRectElement>();
   private timers = new Set<number>();
   private state: GameState | null = null;
@@ -91,9 +93,11 @@ export class BoardView {
 
     this.gatesLayer = el('g');
     this.relayLayer = el('g', { 'aria-hidden': 'true' });
+    this.lampLayer = el('g');
     this.arrowsLayer = el('g');
     this.svg.appendChild(this.gatesLayer);
     this.svg.appendChild(this.relayLayer);
+    this.svg.appendChild(this.lampLayer);
     this.svg.appendChild(this.arrowsLayer);
     container.appendChild(this.svg);
   }
@@ -108,9 +112,29 @@ export class BoardView {
     this.arrowsLayer.innerHTML = '';
     this.gatesLayer.innerHTML = '';
     this.relayLayer.innerHTML = '';
+    this.lampLayer.innerHTML = '';
     this.arrowNodes.clear();
     this.gateNodes.clear();
     this.relayNodes.clear();
+    this.lampNodes.clear();
+
+    for (const c of this.level.lamps ?? []) {
+      const key = cellKey(c);
+      const lit = (state.lit ?? []).includes(key);
+      const node = el('g', {
+        class: `lamp ${lit ? 'lamp--lit' : ''}`,
+        transform: `translate(${c.x * CELL + CELL / 2},${c.y * CELL + CELL / 2})`,
+        role: 'img',
+        'aria-label': `灯，${lit ? '已点亮' : '未点亮'}，第 ${c.x + 1} 列第 ${c.y + 1} 行`,
+      });
+      node.appendChild(el('circle', { class: 'lamp-glow', cx: 0, cy: 0, r: 30 }));
+      node.appendChild(
+        el('path', { class: 'lamp-house', d: 'M -18 2 L 0 -16 L 18 2 L 18 20 L -18 20 Z' }),
+      );
+      node.appendChild(el('rect', { class: 'lamp-door', x: -5, y: 8, width: 10, height: 12, rx: 2 }));
+      this.lampLayer.appendChild(node);
+      this.lampNodes.set(key, node);
+    }
 
     for (const m of this.level.mechanisms) {
       const open = !!state.open[m.group];
@@ -189,7 +213,9 @@ export class BoardView {
         ? `可调头箭头，当前向${DIR_NAME[arrow.dir]}，长度 ${arrow.len}，点击选中后可调头或发射`
         : `箭头，向${DIR_NAME[arrow.dir]}，长度 ${arrow.len}${
             arrow.group ? `，${GROUP_SYMBOL[arrow.group]} 开关` : ''
-          }，头部在第 ${arrow.head.x + 1} 列第 ${arrow.head.y + 1} 行`) + relayNote,
+          }，头部在第 ${arrow.head.x + 1} 列第 ${arrow.head.y + 1} 行`) +
+        relayNote +
+        (def.id === this.level.escort ? '，护送目标 ★' : ''),
     });
     const shape = el('g', { class: 'arrow-shape' });
     const back = (arrow.len - 1) * CELL;
@@ -203,11 +229,14 @@ export class BoardView {
       el('rect', { class: 'arrow-sheen', x: -back - 38, y: -6.5, width: back + 28, height: 4, rx: 2 }),
     );
     shape.appendChild(el('path', { class: 'arrow-head', d: 'M 40 0 L -8 -22 L -8 22 Z' }));
-    if (arrow.group || def.reversible) {
+    if (arrow.group || def.reversible || def.id === this.level.escort) {
       const bx = -back / 2 - 24;
-      shape.appendChild(el('circle', { class: 'arrow-badge', cx: bx, cy: 0, r: 10 }));
+      const isEscort = def.id === this.level.escort && !arrow.group && !def.reversible;
+      shape.appendChild(
+        el('circle', { class: `arrow-badge${isEscort ? ' arrow-badge--escort' : ''}`, cx: bx, cy: 0, r: 10 }),
+      );
       const sym = el('text', { class: 'arrow-badge-sym', x: bx, y: 5 });
-      sym.textContent = def.reversible ? '⇄' : GROUP_SYMBOL[arrow.group!];
+      sym.textContent = def.reversible ? '⇄' : arrow.group ? GROUP_SYMBOL[arrow.group] : '★';
       shape.appendChild(sym);
     }
     node.appendChild(shape);

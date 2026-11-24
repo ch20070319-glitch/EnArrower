@@ -1,5 +1,5 @@
 import { GameSession } from '../core/session';
-import { applyMove, checkRelay, effectiveArrow, relayOf, sweptCells } from '../core/rules';
+import { allLampsLit, applyMove, checkRelay, effectiveArrow, relayOf, sweptCells } from '../core/rules';
 import { hint } from '../core/solver';
 import { Dir, GROUP_SYMBOL } from '../core/types';
 import { LEVELS, levelById } from '../levels/levels';
@@ -456,8 +456,18 @@ export class App {
     const nextBtn = $<HTMLButtonElement>('btn-next');
     nextBtn.hidden = !next;
     nextBtn.textContent = next ? `下一关 · ${next.name}` : '下一关';
+    const lampCount = level.lamps?.length ?? 0;
+    if (lampCount > 0) {
+      const litCount = this.session.state.lit.length;
+      $('win-detail').textContent += allLampsLit(level, this.session.state)
+        ? ' 点亮小屋：所有灯都亮了！'
+        : ` 还有 ${lampCount - litCount} 盏灯没亮（不影响通关）。`;
+    }
     $('win-overlay').hidden = false;
-    this.setStatus('通关！所有箭头已离场。', 'good');
+    this.setStatus(
+      level.escort ? '通关！★ 箭头已送出棋盘。' : '通关！所有箭头已离场。',
+      'good',
+    );
     (next ? $<HTMLButtonElement>('btn-next') : $<HTMLButtonElement>('btn-replay')).focus();
   }
 

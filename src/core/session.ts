@@ -21,7 +21,7 @@ export class GameSession {
   }
 
   get won(): boolean {
-    return isWin(this.state);
+    return isWin(this.level, this.state);
   }
 
   /** 提交一次成功移动：先存快照，再一次性移除箭头并切换机关。 */

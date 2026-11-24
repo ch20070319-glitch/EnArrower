@@ -23,7 +23,7 @@ export function solve(level: LevelDef, start: GameState): SolveResult {
   const leaders = new Set((level.relays ?? []).map((r) => r.leader));
 
   function dfs(state: GameState): boolean {
-    if (isWin(state)) return true;
+    if (isWin(level, state)) return true;
     const key = stateKey(state);
     visited.add(key);
     if (dead.has(key)) return false;
@@ -58,7 +58,7 @@ export type HintResult =
 
 /** 提示必须保证“执行后仍可通关”，不能把局部可移动当作正确下一步。 */
 export function hint(level: LevelDef, state: GameState): HintResult {
-  if (isWin(state)) return { kind: 'won' };
+  if (isWin(level, state)) return { kind: 'won' };
   const current = solve(level, state);
   if (!current.solvable || !current.solution) return { kind: 'dead-end' };
   const first = current.solution[0];

@@ -53,7 +53,7 @@ function validState(v: unknown, level: LevelDef): v is GameState {
   for (const g of groups) {
     if (typeof open[g] !== 'boolean') return false;
   }
-  // 本轮新增字段：旧存档无 turned 视为 []；存在时必须是 remaining 中 ⇄ 箭头的无重复子集。
+  // 本轮新增字段：旧存档无 turned/lit 视为 []；存在时必须是合法子集。
   if (s.turned !== undefined) {
     if (!Array.isArray(s.turned)) return false;
     const reversible = new Set(level.arrows.filter((a) => a.reversible).map((a) => a.id));
@@ -63,6 +63,15 @@ function validState(v: unknown, level: LevelDef): v is GameState {
         return false;
       }
       seenTurned.add(id);
+    }
+  }
+  if (s.lit !== undefined) {
+    if (!Array.isArray(s.lit)) return false;
+    const lampKeys = new Set((level.lamps ?? []).map((c) => `${c.x},${c.y}`));
+    const seenLit = new Set<string>();
+    for (const key of s.lit) {
+      if (typeof key !== 'string' || !lampKeys.has(key) || seenLit.has(key)) return false;
+      seenLit.add(key);
     }
   }
   return true;

@@ -104,5 +104,17 @@ export function validateLevel(level: LevelDef): ValidationError[] {
       if (a?.path) err(`接力箭头 ${id} 第一轮必须是直箭头`);
     }
   }
+
+  if (level.escort !== undefined && !ids.has(level.escort)) {
+    err(`护送目标 ${level.escort} 不存在`);
+  }
+  const lampKeys = new Set<string>();
+  for (const c of level.lamps ?? []) {
+    if (!inBoard(level, c)) err(`灯越界 (${c.x},${c.y})`);
+    const key = cellKey(c);
+    if (lampKeys.has(key)) err(`灯坐标重复 (${c.x},${c.y})`);
+    lampKeys.add(key);
+    if (occupied.has(key)) err(`灯 (${c.x},${c.y}) 与箭头/闸门重叠`);
+  }
   return errors;
 }

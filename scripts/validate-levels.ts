@@ -54,7 +54,7 @@ for (const level of [...LEVELS, SAMPLE_LEVEL]) {
     }
     state = applyMove(level, state, op.arrowId).state;
   }
-  if (!replayOk || !isWin(state)) {
+  if (!replayOk || !isWin(level, state)) {
     failed++;
     console.error(`[重放未清空] ${level.id}`);
     continue;

@@ -40,6 +40,10 @@ export interface LevelDef {
   arrows: ArrowDef[];
   mechanisms: MechanismDef[];
   relays?: RelayDef[];
+  /** 护送目标：★ 箭头完全离场即通关，其余箭头可留在棋盘。缺省为清空棋盘。 */
+  escort?: string;
+  /** 可选点灯：箭头实际经过（绳随路线）即点亮；全亮给额外反馈，不影响通关。 */
+  lamps?: Cell[];
 }
 
 /** 稳定游戏状态：只含规则事实，不含动画坐标、输入锁或回调。 */
@@ -49,6 +53,8 @@ export interface GameState {
   open: Partial<Record<GroupId, boolean>>;
   /** 已调头（相对初始朝向翻转）的 ⇄ 箭头 id；旧存档缺省视为 []。 */
   turned: string[];
+  /** 已点亮灯的坐标键 "x,y"；旧存档缺省视为 []。 */
+  lit: string[];
 }
 
 export type Blocker =

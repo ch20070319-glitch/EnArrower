@@ -51,7 +51,7 @@ describe('四向移动与不同长度', () => {
       expect(checkMove(level, state, 'a').ok).toBe(true);
       const result = applyMove(level, state, 'a');
       expect(result.ok).toBe(true);
-      expect(isWin(result.state)).toBe(true);
+      expect(isWin(level, result.state)).toBe(true);
     });
   }
 
@@ -170,7 +170,7 @@ describe('闸门碰撞', () => {
     const result = applyMove(level, initialState(level), 's');
     expect(result.ok).toBe(true);
     expect(result.state.open.diamond).toBe(false);
-    expect(isWin(result.state)).toBe(true);
+    expect(isWin(level, result.state)).toBe(true);
   });
 });
 

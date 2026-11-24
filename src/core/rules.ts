@@ -83,6 +83,7 @@ export function initialState(level: LevelDef): GameState {
     remaining: level.arrows.map((a) => a.id),
     open,
     turned: [],
+    lit: [],
   };
 }
 
@@ -92,6 +93,7 @@ export function cloneState(state: GameState): GameState {
     remaining: [...state.remaining],
     open: { ...state.open },
     turned: [...(state.turned ?? [])],
+    lit: [...(state.lit ?? [])],
   };
 }
 
@@ -151,6 +153,13 @@ export function applyMove(level: LevelDef, state: GameState, arrowId: string): M
     next.open[arrow.group] = !next.open[arrow.group];
     toggledGroup = arrow.group;
   }
+  if (level.lamps?.length) {
+    const lamps = new Set(level.lamps.map(cellKey));
+    for (const c of sweptCells(level, effectiveArrow(arrow, state))) {
+      const key = cellKey(c);
+      if (lamps.has(key) && !next.lit.includes(key)) next.lit.push(key);
+    }
+  }
   return { ok: true, state: next, toggledGroup };
 }
 
@@ -167,8 +176,16 @@ export function applyTurn(level: LevelDef, state: GameState, arrowId: string): M
   return { ok: true, state: next };
 }
 
-export function isWin(state: GameState): boolean {
+/** 护送关：★ 离场即胜；普通关：清空棋盘。灯不影响胜负。 */
+export function isWin(level: LevelDef, state: GameState): boolean {
+  if (level.escort) return !state.remaining.includes(level.escort);
   return state.remaining.length === 0;
+}
+
+/** 全部灯是否点亮（通关额外反馈用）。 */
+export function allLampsLit(level: LevelDef, state: GameState): boolean {
+  if (!level.lamps?.length) return false;
+  return level.lamps.every((c) => (state.lit ?? []).includes(cellKey(c)));
 }
 
 /** 接力对查询：id 作为领头或跟随所在的接力。 */

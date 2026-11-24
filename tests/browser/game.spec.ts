@@ -700,7 +700,7 @@ test.describe('接力箭头（23-24）', () => {
     await expect(page.locator('.arrow-mover[data-arrow-id="B"]')).toHaveCount(1);
   });
 
-  test('AC34 第24关（末关）接力长链完整通关，无下一关按钮', async ({ page }) => {
+  test('AC34 第24关接力长链完整通关，下一关指向护送关', async ({ page }) => {
     await fresh(page, true);
     await openLevel(page, 24);
     await clickArrow(page, 's');
@@ -710,7 +710,8 @@ test.describe('接力箭头（23-24）', () => {
     await clickArrow(page, 'C');
     await page.waitForTimeout(1200);
     await expect(page.locator('#win-overlay')).toBeVisible();
-    await expect(page.locator('#btn-next')).toBeHidden();
+    await expect(page.locator('#btn-next')).toBeVisible();
+    await expect(page.locator('#btn-next')).toContainText('护送星标');
     const save = await readSave(page);
     expect(save.completed).toContain('l24');
     expect(save.current.state.remaining).toEqual([]);
@@ -727,5 +728,93 @@ test.describe('接力箭头（23-24）', () => {
     const save = await readSave(page);
     expect(save.current.state.remaining).toEqual([]);
     expect(save.current.history.length).toBe(2);
+  });
+});
+
+test.describe('护送与点灯（25-27）', () => {
+  test('AC36 第25关护送：★ 离场即通关且 a 留在场上，提示指向 ★', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 25);
+    await expect(page.locator('.arrow-badge--escort')).toHaveCount(1);
+    await clickArrow(page, 's');
+    await clickArrow(page, 'b');
+    await page.click('#btn-hint');
+    await expect(page.locator('.arrow-mover[data-arrow-id="e"] .arrow.is-hint')).toHaveCount(1);
+    await clickArrow(page, 'e');
+    await expect(page.locator('#win-overlay')).toBeVisible();
+    await expect(page.locator('#status')).toContainText('★');
+    await expect(page.locator('.arrow-mover[data-arrow-id="a"]')).toHaveCount(1);
+    const save = await readSave(page);
+    expect(save.current.state.remaining).toEqual(['a']);
+    expect(save.completed).toContain('l25');
+    await expect(page.locator('#btn-next')).toContainText('灯与调头');
+  });
+
+  test('AC37 第26关向右直接发射：通关但灯不亮，提示还有灯没亮', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 26);
+    await expect(page.locator('.lamp')).toHaveCount(1);
+    await expect(page.locator('.lamp--lit')).toHaveCount(0);
+    await clickArrow(page, 'r');
+    await page.click('#btn-fire');
+    await page.waitForTimeout(700);
+    await expect(page.locator('.lamp--lit')).toHaveCount(0);
+    await clickArrow(page, 'c');
+    await clickArrow(page, 'a');
+    await expect(page.locator('#win-overlay')).toBeVisible();
+    await expect(page.locator('#win-detail')).toContainText('还有 1 盏灯没亮');
+  });
+
+  test('AC38 第26关调头向左点灯：撤销熄灭、刷新恢复、全亮通关', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 26);
+    await clickArrow(page, 'c');
+    await clickArrow(page, 'r');
+    await page.click('#btn-turn');
+    await page.click('#btn-fire');
+    await page.waitForTimeout(700);
+    await expect(page.locator('.lamp--lit')).toHaveCount(1);
+    let save = await readSave(page);
+    expect(save.current.state.lit).toEqual(['0,3']);
+
+    await page.click('#btn-undo');
+    await expect(page.locator('.lamp--lit')).toHaveCount(0);
+    save = await readSave(page);
+    expect(save.current.state.lit).toEqual([]);
+    expect(save.current.state.turned).toEqual(['r']);
+
+    await clickArrow(page, 'r');
+    await page.click('#btn-fire');
+    await page.waitForTimeout(700);
+    await page.reload();
+    await page.click('#btn-start');
+    await expect(page.locator('#screen-game')).toBeVisible();
+    await expect(page.locator('.lamp--lit')).toHaveCount(1);
+    await expect(page.locator('.lamp')).toHaveAttribute('aria-label', /已点亮/);
+    await clickArrow(page, 'a');
+    await expect(page.locator('#win-overlay')).toBeVisible();
+    await expect(page.locator('#win-detail')).toContainText('点亮小屋：所有灯都亮了');
+  });
+
+  test('AC39 第27关（末关）终局灯屋：接力+向右各点一盏，全亮通关且无下一关', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 27);
+    await expect(page.locator('.lamp')).toHaveCount(2);
+    await clickArrow(page, 's');
+    await clickArrow(page, 'A');
+    await page.waitForTimeout(1200);
+    await expect(page.locator('.lamp--lit')).toHaveCount(1);
+    await clickArrow(page, 'r');
+    await page.click('#btn-fire');
+    await page.waitForTimeout(700);
+    await expect(page.locator('.lamp--lit')).toHaveCount(2);
+    await clickArrow(page, 'd');
+    await expect(page.locator('#win-overlay')).toBeVisible();
+    await expect(page.locator('#win-detail')).toContainText('点亮小屋：所有灯都亮了');
+    await expect(page.locator('#btn-next')).toBeHidden();
+    const save = await readSave(page);
+    expect(save.completed).toContain('l27');
+    expect(save.current.state.lit).toEqual(['5,6', '6,4']);
+    expect(save.current.state.remaining).toEqual([]);
   });
 });

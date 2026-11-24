@@ -188,4 +188,47 @@ describe('存档读写', () => {
     expect(result.data.current).toBeNull();
     expect(result.notice).toContain('不匹配');
   });
+
+  it('旧存档（无 lit 字段）兼容加载，默认灯全灭', () => {
+    const level = LEVELS[25];
+    const state = initialState(level);
+    const { lit: _omitted, ...oldState } = state;
+    const data = defaultSave();
+    data.current = { levelId: level.id, state: oldState as typeof state, history: [] };
+    const result = loadSave(memoryStorage(JSON.stringify(data)));
+    expect(result.notice).toBeNull();
+    expect(result.data.current?.state.lit).toEqual([]);
+  });
+
+  it('点灯状态往返保存：刷新后灯仍亮，撤销后熄灭', () => {
+    const level = LEVELS[25];
+    const session = new GameSession(level);
+    session.commitMove('c');
+    session.commitTurn('r');
+    session.commitMove('r');
+    const data = defaultSave();
+    data.current = { levelId: level.id, state: session.state, history: session.history };
+    const storage = memoryStorage();
+    expect(writeSave(storage, data).ok).toBe(true);
+    const loaded = loadSave(storage);
+    expect(loaded.notice).toBeNull();
+    expect(loaded.data.current?.state.lit).toEqual(['0,3']);
+    const restored = new GameSession(level, loaded.data.current!.state, loaded.data.current!.history);
+    expect(restored.state.lit).toEqual(['0,3']);
+    restored.undo();
+    expect(restored.state.lit).toEqual([]);
+  });
+
+  it('非法 lit（不是本关灯的坐标）丢弃当前存档', () => {
+    const level = LEVELS[25];
+    const data = defaultSave();
+    data.current = {
+      levelId: level.id,
+      state: { ...initialState(level), lit: ['9,9'] },
+      history: [],
+    };
+    const result = loadSave(memoryStorage(JSON.stringify(data)));
+    expect(result.data.current).toBeNull();
+    expect(result.notice).toContain('不匹配');
+  });
 });

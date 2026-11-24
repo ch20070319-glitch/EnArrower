@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  allLampsLit,
   applyMove,
   applyRelay,
   applyTurn,
@@ -18,11 +19,11 @@ import { solve } from '../../src/core/solver';
 import { LEVELS } from '../../src/levels/levels';
 import { validateLevel } from '../../src/levels/validate';
 
-describe('24 个正式关卡', () => {
+describe('27 个正式关卡', () => {
   it('数量与编号连续', () => {
-    expect(LEVELS).toHaveLength(24);
-    expect(LEVELS.map((l) => l.index)).toEqual(Array.from({ length: 24 }, (_, i) => i + 1));
-    expect(new Set(LEVELS.map((l) => l.id)).size).toBe(24);
+    expect(LEVELS).toHaveLength(27);
+    expect(LEVELS.map((l) => l.index)).toEqual(Array.from({ length: 27 }, (_, i) => i + 1));
+    expect(new Set(LEVELS.map((l) => l.id)).size).toBe(27);
   });
 
   for (const level of LEVELS) {
@@ -50,7 +51,7 @@ describe('24 个正式关卡', () => {
             state = applyMove(level, state, op.arrowId).state;
           }
         }
-        expect(isWin(state)).toBe(true);
+        expect(isWin(level, state)).toBe(true);
       });
 
       it('每支箭头的提示首步执行后仍可通关', () => {
@@ -67,7 +68,7 @@ describe('24 个正式关卡', () => {
     });
   }
 
-  it('关卡分组符合教学规划（1-3 无机关，4-9 一组，10-12 两组，13-15 一组进阶，16-18 两组进阶，19 折线教学，20 大折线，21 调头教学，22 双向抉择，23 接力教学，24 接力长链）', () => {
+  it('关卡分组符合教学规划（1-3 无机关，4-9 一组，10-12 两组，13-15 一组进阶，16-18 两组进阶，19 折线教学，20 大折线，21 调头教学，22 双向抉择，23 接力教学，24 接力长链，25 护送，26 灯与调头，27 终局灯屋）', () => {
     for (const l of LEVELS.slice(0, 3)) expect(l.mechanisms).toHaveLength(0);
     for (const l of LEVELS.slice(3, 9)) expect(l.mechanisms).toHaveLength(1);
     for (const l of LEVELS.slice(9, 12)) expect(l.mechanisms).toHaveLength(2);
@@ -79,6 +80,12 @@ describe('24 个正式关卡', () => {
     expect(LEVELS[21].mechanisms).toHaveLength(2);
     expect(LEVELS[22].mechanisms).toHaveLength(1);
     expect(LEVELS[23].mechanisms).toHaveLength(2);
+    expect(LEVELS[24].mechanisms).toHaveLength(1);
+    expect(LEVELS[25].mechanisms).toHaveLength(0);
+    expect(LEVELS[26].mechanisms).toHaveLength(1);
+    expect(LEVELS[24].escort).toBe('e');
+    expect(LEVELS[25].lamps).toHaveLength(1);
+    expect(LEVELS[26].lamps).toHaveLength(2);
   });
 
   it('大棋盘面积约为旧同类关两倍（7×7=49 → 8×12=96）', () => {
@@ -220,7 +227,7 @@ describe('接力箭头（A 带 B）', () => {
     expect(result.ok).toBe(true);
     state = result.state;
     expect(state.remaining).toEqual([]);
-    expect(isWin(state)).toBe(true);
+    expect(isWin(l23, state)).toBe(true);
   });
 
   it('l24 长链：s → 接力A/B → t → 接力C/D', () => {
@@ -234,7 +241,7 @@ describe('接力箭头（A 带 B）', () => {
     state = applyMove(l24, state, 't').state;
     expect(checkRelay(l24, state, 'C').ok).toBe(true);
     state = applyRelay(l24, state, 'C').state;
-    expect(isWin(state)).toBe(true);
+    expect(isWin(l24, state)).toBe(true);
   });
 
   it('l24 接力 C/D 在 ○ 门关闭时失败且状态不变', () => {
@@ -249,5 +256,75 @@ describe('接力箭头（A 带 B）', () => {
     const result = applyRelay(l24, state, 'C');
     expect(result.ok).toBe(false);
     expect(result.state).toBe(before);
+  });
+});
+
+describe('护送与点灯', () => {
+  const l25 = LEVELS[24];
+  const l26 = LEVELS[25];
+  const l27 = LEVELS[26];
+
+  it('l25 送出 ★ 即通关，其他箭头可留在棋盘', () => {
+    let state = initialState(l25);
+    state = applyMove(l25, state, 's').state;
+    state = applyMove(l25, state, 'b').state;
+    expect(isWin(l25, state)).toBe(false);
+    state = applyMove(l25, state, 'e').state;
+    expect(state.remaining).toEqual(['a']);
+    expect(isWin(l25, state)).toBe(true);
+  });
+
+  it('l25 求解器按护送目标判定：解法不必清空全部箭头', () => {
+    const result = solve(l25, initialState(l25));
+    expect(result.solvable).toBe(true);
+    let state = initialState(l25);
+    for (const op of result.solution!) {
+      state = applyMove(l25, state, op.arrowId).state;
+    }
+    expect(isWin(l25, state)).toBe(true);
+    expect(state.remaining).not.toContain('e');
+  });
+
+  it('l26 向右直接发射可通关但灯不亮', () => {
+    let state = applyMove(l26, initialState(l26), 'r').state;
+    expect(state.lit).toEqual([]);
+    state = applyMove(l26, state, 'c').state;
+    state = applyMove(l26, state, 'a').state;
+    expect(isWin(l26, state)).toBe(true);
+    expect(allLampsLit(l26, state)).toBe(false);
+  });
+
+  it('l26 先放 c 再调头向左：经过灯即点亮，通关时全亮', () => {
+    let state = applyMove(l26, initialState(l26), 'c').state;
+    state = applyTurn(l26, state, 'r').state;
+    state = applyMove(l26, state, 'r').state;
+    expect(state.lit).toEqual(['0,3']);
+    expect(state.remaining).toEqual(['a']);
+    expect(isWin(l26, state)).toBe(false);
+    state = applyMove(l26, state, 'a').state;
+    expect(isWin(l26, state)).toBe(true);
+    expect(allLampsLit(l26, state)).toBe(true);
+  });
+
+  it('l27 接力经过下方灯、⇄ 向右经过上方灯：两盏全亮', () => {
+    let state = initialState(l27);
+    state = applyMove(l27, state, 's').state;
+    state = applyRelay(l27, state, 'A').state;
+    expect(state.lit).toContain('5,6');
+    state = applyMove(l27, state, 'r').state;
+    expect(state.lit).toContain('6,4');
+    state = applyMove(l27, state, 'd').state;
+    expect(isWin(l27, state)).toBe(true);
+    expect(allLampsLit(l27, state)).toBe(true);
+  });
+
+  it('点灯依据绳随路线：sweptCells 覆盖灯格才点亮', () => {
+    const r = l26.arrows.find((a) => a.id === 'r')!;
+    const rightSwept = sweptCells(l26, r).map(cellKey);
+    expect(rightSwept).not.toContain('0,3');
+    const turnedState = applyTurn(l26, initialState(l26), 'r').state;
+    const eff = { ...r, head: { x: 2, y: 3 }, dir: 'left' as const };
+    expect(sweptCells(l26, eff).map(cellKey)).toContain('0,3');
+    expect(turnedState.turned).toEqual(['r']);
   });
 });

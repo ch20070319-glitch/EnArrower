@@ -418,6 +418,14 @@ body {
 .arrow--diamond .arrow-badge-sym { fill: var(--amber-deep); }
 .arrow--circle .arrow-badge-sym { fill: var(--violet-deep); }
 .arrow--reversible .arrow-badge-sym { fill: var(--coral-deep); }
+.arrow-badge--escort { fill: #f6d76b; }
+/* 灯与小屋：未亮灰、点亮暖光 */
+.lamp-glow { fill: #f2c14e; opacity: 0; transition: opacity 0.3s ease; }
+.lamp-house { fill: var(--paper-deep); stroke: var(--muted); stroke-width: 3; stroke-linejoin: round; }
+.lamp-door { fill: var(--muted); opacity: 0.5; }
+.lamp--lit .lamp-glow { opacity: 0.4; }
+.lamp--lit .lamp-house { fill: #f6d76b; stroke: var(--amber-deep); }
+.lamp--lit .lamp-door { fill: var(--amber-deep); opacity: 0.85; }
 .arrow.is-selected .arrow-shape { filter: drop-shadow(0 0 8px rgba(217, 106, 91, 0.9)); }
 /* 接力虚线连接：领头→跟随 */
 .relay-link { stroke: var(--muted); stroke-width: 4; stroke-dasharray: 10 10; stroke-linecap: round; opacity: 0.7; }

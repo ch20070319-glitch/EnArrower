@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { applyMove, checkMove, initialState, isWin, legalMoves } from '../../src/core/rules';
 import { GameSession } from '../../src/core/session';
 import { hint, solve } from '../../src/core/solver';
-import { SAMPLE_LEVEL } from '../../src/levels/levels';
+import { LEVELS, SAMPLE_LEVEL } from '../../src/levels/levels';
 
 describe('固定样例：需求文档预期行为', () => {
   it('初始 B 被 C 阻挡', () => {
@@ -135,7 +135,7 @@ describe('会话：撤销 / 重开', () => {
   it('通关后可撤销最后一步', () => {
     const session = new GameSession(SAMPLE_LEVEL);
     for (const id of ['C', 'B', 'A']) session.commitMove(id);
-    expect(isWin(session.state)).toBe(true);
+    expect(isWin(SAMPLE_LEVEL, session.state)).toBe(true);
     session.undo();
     expect(session.won).toBe(false);
     expect(session.state.remaining).toEqual(['A']);
@@ -221,5 +221,32 @@ describe('会话：撤销 / 重开', () => {
     expect(result.ok).toBe(false);
     expect(session.canUndo).toBe(false);
     expect(session.state.remaining).toEqual(['A', 'B']);
+  });
+
+  it('点灯随撤销恢复：撤销发射后灯熄灭，再撤销恢复朝向', () => {
+    const l26 = LEVELS[25];
+    const session = new GameSession(l26);
+    session.commitMove('c');
+    session.commitTurn('r');
+    expect(session.commitMove('r').ok).toBe(true);
+    expect(session.state.lit).toEqual(['0,3']);
+    session.undo();
+    expect(session.state.lit).toEqual([]);
+    expect(session.state.turned).toEqual(['r']);
+    session.undo();
+    expect(session.state.turned).toEqual([]);
+  });
+
+  it('护送关会话：★ 离场即 won，剩余箭头不影响', () => {
+    const l25 = LEVELS[24];
+    const session = new GameSession(l25);
+    session.commitMove('s');
+    session.commitMove('b');
+    expect(session.won).toBe(false);
+    expect(session.commitMove('e').ok).toBe(true);
+    expect(session.won).toBe(true);
+    expect(session.state.remaining).toEqual(['a']);
+    session.undo();
+    expect(session.won).toBe(false);
   });
 });
