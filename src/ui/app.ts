@@ -372,10 +372,17 @@ export class App {
     const h = hint(this.session.level, this.session.state);
     if (h.kind === 'move') {
       this.board.flashHint(h.arrowId);
-      this.setStatus('提示：试试高亮的这支箭头（不会自动移动）。', 'good');
+      const level = this.session.level;
+      const arrow = level.arrows.find((a) => a.id === h.arrowId)!;
+      const text = arrow.group
+        ? `提示：先让开关 ${h.arrowId} 离场，它会切换 ${arrow.group === 'diamond' ? '◇' : '○'} 闸门（不会自动移动）。`
+        : level.escort === h.arrowId
+          ? `提示：护送 ★ 箭头 ${h.arrowId} 离场即可通关（不会自动移动）。`
+          : `提示：让箭头 ${h.arrowId} 沿当前朝向离场（不会自动移动）。`;
+      this.setStatus(text, 'good');
     } else if (h.kind === 'turn') {
       this.board.flashHint(h.arrowId);
-      this.setStatus('提示：先将 ⇄ 箭头调头，再考虑发射。', 'good');
+      this.setStatus(`提示：先将 ⇄ 箭头 ${h.arrowId} 调头，再考虑发射。`, 'good');
     } else if (h.kind === 'relay') {
       this.board.flashRelay(h.arrowId);
       this.setStatus(`提示：启动接力 ${h.arrowId}，它会带着跟随箭一起离场。`, 'good');

@@ -354,6 +354,29 @@ test.describe('撤销 / 重开 / 提示', () => {
     const after = await readSave(page);
     expect(after.current.state.remaining).toEqual(before.current.state.remaining);
   });
+
+  test('AC40 提示文案具体化：开关点名、接力点名、护送点名', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 4);
+    await page.click('#btn-hint');
+    await expect(page.locator('#status')).toContainText('开关 s');
+    await expect(page.locator('#status')).toContainText('◇');
+
+    await page.click('#btn-game-back');
+    await page.click('.level-tile:nth-child(23)');
+    await page.click('#btn-hint');
+    await expect(page.locator('#status')).toContainText('开关 C');
+    await clickArrow(page, 'C');
+    await page.click('#btn-hint');
+    await expect(page.locator('#status')).toContainText('启动接力 A');
+
+    await page.click('#btn-game-back');
+    await page.click('.level-tile:nth-child(25)');
+    await clickArrow(page, 's');
+    await clickArrow(page, 'b');
+    await page.click('#btn-hint');
+    await expect(page.locator('#status')).toContainText('护送 ★ 箭头 e');
+  });
 });
 
 test.describe('通关与存档', () => {

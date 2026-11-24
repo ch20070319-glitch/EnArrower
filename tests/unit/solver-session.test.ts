@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyMove, checkMove, initialState, isWin, legalMoves } from '../../src/core/rules';
+import { applyMove, checkMove, initialState, isWin, legalMoves, stateKey } from '../../src/core/rules';
 import { GameSession } from '../../src/core/session';
 import { hint, solve } from '../../src/core/solver';
 import { LEVELS, SAMPLE_LEVEL } from '../../src/levels/levels';
@@ -248,5 +248,35 @@ describe('会话：撤销 / 重开', () => {
     expect(session.state.remaining).toEqual(['a']);
     session.undo();
     expect(session.won).toBe(false);
+  });
+});
+
+describe('求解规模与状态键（新棋盘尺度）', () => {
+  it('最大关卡 l20（8×12，9 箭含两条折线）搜索状态数受控', () => {
+    const l20 = LEVELS[19];
+    const result = solve(l20, initialState(l20));
+    expect(result.solvable).toBe(true);
+    expect(result.visited).toBeLessThan(500);
+  });
+
+  it('终局灯屋 l27（接力+调头+两盏灯）搜索状态数受控', () => {
+    const l27 = LEVELS[26];
+    const result = solve(l27, initialState(l27));
+    expect(result.solvable).toBe(true);
+    expect(result.visited).toBeLessThan(200);
+  });
+
+  it('灯状态不参与状态键：点灯不改变移动可能性', () => {
+    const l26 = LEVELS[25];
+    const s0 = initialState(l26);
+    expect(stateKey({ ...s0, lit: ['0,3'] })).toBe(stateKey(s0));
+  });
+
+  it('27 关全量求解本机实测总耗时低于 1s（回归阈值，非承诺上限）', () => {
+    const t0 = performance.now();
+    for (const level of LEVELS) {
+      expect(solve(level, initialState(level)).solvable).toBe(true);
+    }
+    expect(performance.now() - t0).toBeLessThan(1000);
   });
 });

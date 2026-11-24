@@ -8,6 +8,9 @@ import { LEVELS, SAMPLE_LEVEL } from '../src/levels/levels';
 import { validateLevel } from '../src/levels/validate';
 
 let failed = 0;
+let totalMs = 0;
+let maxMs = 0;
+let maxLevel = '';
 
 for (const level of [...LEVELS, SAMPLE_LEVEL]) {
   const errors = validateLevel(level);
@@ -17,7 +20,14 @@ for (const level of [...LEVELS, SAMPLE_LEVEL]) {
     for (const e of errors) console.error(`  - ${e.message}`);
     continue;
   }
+  const t0 = performance.now();
   const result = solve(level, initialState(level));
+  const ms = performance.now() - t0;
+  totalMs += ms;
+  if (ms > maxMs) {
+    maxMs = ms;
+    maxLevel = level.id;
+  }
   if (!result.solvable || !result.solution) {
     failed++;
     console.error(`[无解] ${level.id} ${level.name}（搜索 ${result.visited} 个状态）`);
@@ -63,7 +73,7 @@ for (const level of [...LEVELS, SAMPLE_LEVEL]) {
     .map((op) => (op.kind === 'turn' ? `⇄${op.arrowId}` : op.kind === 'relay' ? `${op.arrowId}⇒` : op.arrowId))
     .join(' → ');
   console.log(
-    `[通过] ${level.id} ${level.name}｜${level.arrows.length} 箭｜解法 ${pretty}｜搜索 ${result.visited} 状态`,
+    `[通过] ${level.id} ${level.name}｜${level.arrows.length} 箭｜解法 ${pretty}｜搜索 ${result.visited} 状态｜耗时 ${ms.toFixed(1)}ms`,
   );
 }
 
@@ -72,3 +82,6 @@ if (failed > 0) {
   process.exit(1);
 }
 console.log('\n全部关卡数据合法、有解且可逐步重放清空。');
+console.log(
+  `求解耗时合计 ${totalMs.toFixed(1)}ms；最慢 ${maxLevel} ${maxMs.toFixed(1)}ms（本机实测，非承诺上限）。`,
+);
