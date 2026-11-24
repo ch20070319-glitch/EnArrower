@@ -81,7 +81,7 @@ if (failed > 0) {
   console.error(`\n${failed} 个关卡未通过验证`);
   process.exit(1);
 }
-console.log('\n全部关卡数据合法、有解且可逐步重放清空。');
+console.log('\n全部关卡数据合法、有解且可逐步重放达通关（护送关以 ★ 离场为准）。');
 console.log(
   `求解耗时合计 ${totalMs.toFixed(1)}ms；最慢 ${maxLevel} ${maxMs.toFixed(1)}ms（本机实测，非承诺上限）。`,
 );

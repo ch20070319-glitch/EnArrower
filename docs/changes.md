@@ -49,3 +49,47 @@
 - 修复：l14 箭尾越界（I12）、l18 同列互挡环（I13）、末关 hidden 按钮缺陷（I14）；断言未弱化。
 - evidence：test-results 四件刷新（99/19/75/build）；screenshots 01/02/04/05/06 重截 + 09 新增，目检通过。
 - docs：requirements §5/§7 追加说明、decisions D11、issues I12–I14、development-log 阶段 6、acceptance AC12 更新 + AC21–AC23、evidence-index、report-outline、README 计数与提交链。
+
+## 第二轮玩法扩展（2026-11-24 用户指令；按「大棋盘与折线 → 可调头 → 接力 → 特殊目标」推进）
+
+### 阶段 A：大棋盘 + 折线箭头（commit 3f1891c）
+- src/core/{types,rules}.ts：ArrowDef.path；cellsOf 统一尾→头、headDirOf 取末段朝向；sweptCells = 自身格 + 出口射线，碰撞/预览/动画/点灯共用。
+- src/levels/validate.ts：宽 5~10、高 3~14、箭 3~12；折线 2~5 格、相邻、不重复、≤1 弯、head/dir 与末段一致。
+- src/levels/levels.ts：l19 折弯初识（7×7）、l20 长湾疏流（8×12=96≈2×49，9 箭两条折线）；l01–l18 逐字不变。
+- src/ui/board.ts：折线箭身 path 渲染 + 绳随离场动画（逐帧展开 d）；src/style.css：`.board-wrap--tall` 桌面限高、≤420px 满宽且 `flex-shrink:0`（I16）。
+- 测试：levels.test 折线 describe 5 项；browser AC24（d 逐帧采样）/AC25（弯折身挡路）/AC26（360px 格≥44px 实玩）/AC27；AC23 锚点改指 l19。
+- 修复：AC26 首跑格宽 39.15px → 满宽后仍 40.9px（flex 父压缩）→ flex-shrink:0 → 44.25px 通过（I16）。
+
+### 阶段 B：可调头箭头 ⇄（commit c06cb85）
+- rules：effectiveArrow（调头后头尾互换、朝向取反）、applyTurn（只改朝向、不触闸门）、stateKey 含 turned（防调头循环）。
+- session.commitTurn 单快照；solver 搜索 exit 优先再 turn，HintResult 增 turn；save turned 可选子集校验（旧档缺省 []）。
+- ui：选中条 #sel-bar（调头/发射/取消）、珊瑚色 ⇄ 皮肤、选中预览射线；app 选中/调头/发射路由、Esc 先退选中。
+- levels：l21 调头初试（不调头无解）、l22 双向抉择（右路永闭）；validate 禁 ⇄+开关/折线共存。
+- 测试：unit 调头 5 项 + 会话 3 项 + 存档 turned 3 项；browser AC28–AC32；AC27 锚点改指 l21。
+- 修复：l21 箭 a 头部 (6,6) 上向 len2 尾越界 → (6,5)（I15）。
+
+### 阶段 C：接力箭头 A/B（commit f8a3220）
+- rules：relayOf/checkRelay（预演 A 离场后的中间态再查 B，RelayCheck.failedId 指明谁被挡）/applyRelay（失败返回原状态引用）；legalMoves 排除跟随箭。
+- session.commitRelay 单快照；solver HintResult 增 relay；validate 接力对校验（存在/不同/不跨队/直/不可调头）。
+- ui：虚线 relay-link、点 B 高亮 A、顺序动画（A 动画 → 中间态 render → B 动画 → 一次 commitRelay）。
+- levels：l23 接力过桥、l24 接力长链（8×8 双接力双组）。
+- 测试：unit 接力 6 项 + 会话单撤销/失败 2 项；browser AC33–AC35（含 sampleRelay 顺序采样）；AC31 锚点改指 l23。
+
+### 阶段 D：护送 ★ 与点灯（commit 8bd09e4）
+- rules：isWin(level,state) 护送感知；applyMove 按 sweptCells 点灯；allLampsLit；GameState.lit。
+- save lit 可选子集校验（旧档缺省 []）；validate 护送 id 存在、灯不越界/不重复/不与箭或门重叠。
+- ui：灯屋 SVG（未亮/已亮）、★ 金色徽章、通关文案「点亮小屋：所有灯都亮了！」/「还有 N 盏灯没亮（不影响通关）」/护送 ★ 文案；index.html 玩法说明增 ★/灯条目。
+- levels：l25 护送星标（★ 离场即胜、a 可留场）、l26 灯与调头（右发可胜但不亮灯）、l27 终局灯屋（8×8 接力+⇄+两灯）。
+- 测试：unit 护送/点灯 6 项 + 会话点灯撤销/护送 2 项 + 存档 lit 3 项；browser AC36–AC39；AC34 锚点改指 l25、末关无下一关断言移至 AC39（l27）。
+- 修复：AC38 刷新后断言直接可见游戏屏失败 → 应用刷新后回首页、需点 #btn-start 继续（与 AC13 一致，I17）。
+
+### 阶段 E：提示操作化 + 求解规模记录（commit ed7fc27）
+- app.giveHint：move 分支点名（开关 X 切换 ◇/○ / 护送 ★ X / 普通 X 沿朝向离场）；turn 分支点名 ⇄ X。
+- scripts/validate-levels.ts：逐关记录求解耗时 ms + 合计/最慢（本机实测，非承诺上限）。
+- 测试：unit 规模 describe 4 项（l20<500 状态、l27<200、灯不入状态键、27 关总耗时<1s 回归阈值）；browser AC40 三类点名文案。
+- 修复：AC40 局中切关误用首页 #btn-levels → 游戏屏 #btn-game-back 回选关页（I18）。
+
+### 阶段 F：全量复测 + 证据刷新（commit 721f9e9）
+- 复测：166 单元 / 28 条重放（27 关+样例，含耗时）/ 126 浏览器（42 用例 ×3 视口）/ build 全通过；evidence/test-results 四件刷新。
+- scripts/capture-evidence.mjs：解锁种子扩到 27；新增截图 10–17（l19 折线、l20 360 满宽整页、l21 选中条、l23 虚线、接力中途 A 已出 B 在场、l25 ★、l26 灯亮、l27 全亮通关弹窗），逐张目检。
+- 本轮不做最终报告与整体收尾（用户指令：待游戏内容定稿后再做）。

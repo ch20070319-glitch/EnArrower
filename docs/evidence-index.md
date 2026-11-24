@@ -2,26 +2,34 @@
 
 所有证据均为实际执行产物。截图为 Playwright 真实渲染截取并逐张目检；移动视口为仿真，非真机。
 
-## 测试结果（evidence/test-results/）
+## 测试结果（evidence/test-results/，第二轮阶段 F 刷新）
 | 文件 | 内容 | 结果 |
 |---|---|---|
-| unit.txt | `npm test`（Vitest，tests/unit 4 文件） | 99 passed |
-| levels.txt | `npm run validate:levels`（18 关 + 样例，校验+求解+逐步重放） | 19/19 通过 |
-| browser.txt | `npm run test:browser`（Playwright，25 用例 × desktop/mobile-390/mobile-360） | 75 passed |
+| unit.txt | `npm test`（Vitest，tests/unit 4 文件） | 166 passed |
+| levels.txt | `npm run validate:levels`（27 关 + 样例，校验+求解+逐步重放+逐关耗时） | 28/28 通过；耗时合计约 6ms、最慢 l01 约 0.7ms（本机实测） |
+| browser.txt | `npm run test:browser`（Playwright，42 用例 × desktop/mobile-390/mobile-360） | 126 passed |
 | build.txt | `npm run build`（tsc --noEmit && vite build） | 成功，无类型错误 |
 
-## 截图（evidence/screenshots/，阶段 6 重截并目检）
+## 截图（evidence/screenshots/；01–09 阶段 6 起沿用并按需重截，10–17 第二轮新增并目检）
 | 文件 | 内容 |
 |---|---|
-| 01-home-desktop.png | 首页（桌面 1280，文案 18 关） |
+| 01-home-desktop.png | 首页（桌面 1280，文案 27 关） |
 | 02-home-mobile-360.png | 首页（360 移动仿真） |
 | 03-game-l01-desktop.png | 第 1 关棋盘（桌面） |
-| 04-levels-desktop.png | 选关页 18 格（完成/解锁/锁定三态，1280×1080） |
+| 04-levels-desktop.png | 选关页 27 格（完成/解锁/锁定三态，1280×1080） |
 | 05-game-l12-desktop.png | 第 12 关双组机关棋盘 |
 | 06-inspect-preview.png | 查看机关模式预览（闸门高亮 + 将开启/将关闭） |
 | 07-win-desktop.png | 通关反馈覆盖层 |
 | 08-game-l11-mobile-360.png | 第 11 关（360 移动仿真，控件 2×2） |
 | 09-game-l18-desktop.png | 第 18 关终局回环（双组三门九箭，桌面） |
+| 10-game-l19-poly-desktop.png | 第 19 关折线教学（L 形箭身，桌面） |
+| 11-game-l20-mobile-360.png | 第 20 关 8×12 大棋盘（360 仿真满宽、格 44.25px，整页） |
+| 12-game-l21-turn-selected.png | 第 21 关 ⇄ 选中态（珊瑚色 + 预览射线 + 调头/发射选中条） |
+| 13-game-l23-relay-link.png | 第 23 关接力虚线连接 A/B |
+| 14-relay-mid-animation.png | 接力中途帧：A 已离场、B 仍在场（顺序动画证据） |
+| 15-game-l25-escort.png | 第 25 关护送 ★ 金色徽章 |
+| 16-game-l26-lamp-lit.png | 第 26 关调头向左经过灯后小屋点亮 |
+| 17-win-l27-all-lamps.png | 第 27 关全亮通关弹窗「点亮小屋：所有灯都亮了！」（末关无下一关） |
 
 ## API 记录（evidence/api/）
 - review-2026-11-16T08-42-29-353Z.json：`npm run review:deepseek` 实跑记录，status=not_called（环境无 DEEPSEEK_API_KEY）。**真实 API 调用尚未发生**；配置密钥后重跑将生成脱敏请求/响应/usage 记录。raw/ 目录已 gitignore。
@@ -43,6 +51,12 @@
 | 0acfdb5 | 7×7 关卡重设、箭头细化、机关精修、640px、复测证据与文档 |
 | dfe961b | 回填阶段 5 提交哈希 |
 | 8745f7e | 阶段 6：l13–l18 六个机关关 + AC21–AC23 + I12–I14 修复 + 证据/文档同步 |
+| 3f1891c | 第二轮阶段 A：大棋盘 l20 + 折线 l19（绳随路线共享碰撞/预览/动画）+ AC24–AC27 |
+| c06cb85 | 第二轮阶段 B：可调头 ⇄（选中/调头/发射分离）l21–l22 + AC28–AC32 |
+| f8a3220 | 第二轮阶段 C：接力 A/B（预演整体成败、顺序动画、单撤销）l23–l24 + AC33–AC35 |
+| 8bd09e4 | 第二轮阶段 D：护送 ★ 与点灯 l25–l27（灯随撤销/存档）+ AC36–AC39 |
+| ed7fc27 | 第二轮阶段 E：提示点名文案、求解规模阈值与实测耗时 + AC40 |
+| 721f9e9 | 第二轮阶段 F：证据刷新（test-results 四件 + 截图 10–17） |
 
 ## 待补（用户留存，不伪造）
 - 用户聊天完整截图/导出。

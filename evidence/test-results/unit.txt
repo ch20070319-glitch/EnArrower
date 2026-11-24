@@ -5,13 +5,13 @@
 
 [1m[30m[46m RUN [49m[39m[22m [36mv5.1.0 [39m[90mC:/Users/54431/Documents/Qoder/2026-11-16/e1874838[39m
 
- [32m✓[39m tests/unit/rules.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 4[2mms[22m[39m
- [32m✓[39m tests/unit/solver-session.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 6[2mms[22m[39m
- [32m✓[39m tests/unit/storage.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 5[2mms[22m[39m
- [32m✓[39m tests/unit/levels.test.ts [2m([22m[2m56 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32m✓[39m tests/unit/rules.test.ts [2m([22m[2m18 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32m✓[39m tests/unit/solver-session.test.ts [2m([22m[2m25 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32m✓[39m tests/unit/storage.test.ts [2m([22m[2m17 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32m✓[39m tests/unit/levels.test.ts [2m([22m[2m106 tests[22m[2m)[22m[32m 40[2mms[22m[39m
 
 [2m Test Files [22m [1m[32m4 passed[39m[22m[90m (4)[39m
-[2m      Tests [22m [1m[32m99 passed[39m[22m[90m (99)[39m
-[2m   Start at [22m 18:02:25
-[2m   Duration [22m 207ms[2m (import 36%, transform 36%, tests 15%, worker 12%)[22m
+[2m      Tests [22m [1m[32m166 passed[39m[22m[90m (166)[39m
+[2m   Start at [22m 21:45:20
+[2m   Duration [22m 394ms[2m (import 36%, transform 33%, tests 20%, worker 11%)[22m
 
