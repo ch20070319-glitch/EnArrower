@@ -62,6 +62,7 @@
               <li><strong>点击箭头</strong> — 它会沿自身朝向整支滑出棋盘；头部或箭身都可以点。</li>
               <li><strong>避开阻挡</strong> — 其他箭头和关闭的闸门会挡路；被挡住不扣分，换个顺序再试。</li>
               <li><strong>开关与闸门</strong> — 带 <span class="sym sym--diamond">◇</span> / <span class="sym sym--circle">○</span> 的开关箭头离场后，会切换同组所有闸门的开与关。先看清门的状态，再决定顺序。</li>
+              <li><strong>⇄ 可调头箭头</strong> — 点击只选中，不移动；用「调头」原地翻转方向、「发射」离场。调头和发射各算一步，都可以撤销。</li>
               <li><strong>清空通关</strong> — 所有箭头离场即通关，闸门不需要清除。随时可以撤销、重开或要一个提示。</li>
             </ol>
             <p class="howto-keys">键盘：Tab 聚焦箭头，Enter / 空格移动；Z 撤销，R 重开，H 提示，Esc 退出查看机关。</p>
@@ -97,6 +98,15 @@
 
         <div class="board-stage">
           <div id="board-wrap" class="board-wrap"></div>
+        </div>
+
+        <div id="sel-bar" class="sel-bar" role="toolbar" aria-label="可调头箭头操作" hidden>
+          <span id="sel-label" class="sel-label"></span>
+          <button id="btn-turn" class="btn btn--control" type="button">⇄ 调头</button>
+          <button id="btn-fire" class="btn btn--primary" type="button">发射</button>
+          <button id="btn-sel-close" class="btn btn--icon" type="button" aria-label="取消选中">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+          </button>
         </div>
 
         <p id="status" class="status" role="status" aria-live="polite"></p>

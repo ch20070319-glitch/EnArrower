@@ -146,4 +146,46 @@ describe('存档读写', () => {
   it('schemaVersion 常量与默认值一致', () => {
     expect(defaultSave().schemaVersion).toBe(SCHEMA_VERSION);
   });
+
+  it('旧存档（无 turned 字段）兼容加载，默认未调头', () => {
+    const level = LEVELS[20];
+    const state = initialState(level);
+    const { turned: _omitted, ...oldState } = state;
+    const data = defaultSave();
+    data.current = { levelId: level.id, state: oldState as typeof state, history: [] };
+    const result = loadSave(memoryStorage(JSON.stringify(data)));
+    expect(result.notice).toBeNull();
+    expect(result.data.current?.state.turned).toEqual([]);
+    expect(result.data.current?.state.remaining).toEqual(state.remaining);
+  });
+
+  it('调头状态往返保存：刷新后恢复朝向', () => {
+    const level = LEVELS[20];
+    const session = new GameSession(level);
+    session.commitTurn('r');
+    const data = defaultSave();
+    data.current = { levelId: level.id, state: session.state, history: session.history };
+    const storage = memoryStorage();
+    expect(writeSave(storage, data).ok).toBe(true);
+    const loaded = loadSave(storage);
+    expect(loaded.notice).toBeNull();
+    expect(loaded.data.current?.state.turned).toEqual(['r']);
+    const restored = new GameSession(level, loaded.data.current!.state, loaded.data.current!.history);
+    expect(restored.state.turned).toEqual(['r']);
+    restored.undo();
+    expect(restored.state.turned).toEqual([]);
+  });
+
+  it('非法 turned（非 ⇄ 箭头 / 不在 remaining）丢弃当前存档', () => {
+    const level = LEVELS[20];
+    const data = defaultSave();
+    data.current = {
+      levelId: level.id,
+      state: { ...initialState(level), turned: ['s'] },
+      history: [],
+    };
+    const result = loadSave(memoryStorage(JSON.stringify(data)));
+    expect(result.data.current).toBeNull();
+    expect(result.notice).toContain('不匹配');
+  });
 });

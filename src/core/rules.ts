@@ -32,6 +32,18 @@ export function headDirOf(arrow: ArrowDef): Dir {
   return 'up';
 }
 
+const OPPOSITE: Record<Dir, Dir> = { up: 'down', down: 'up', left: 'right', right: 'left' };
+
+/**
+ * ⇄ 箭头调头后的等效定义：沿原轴翻转 180°，头尾互换、占格不变。
+ * 第一轮可调头箭头均为直箭头，等效定义仍是直箭头。
+ */
+export function effectiveArrow(arrow: ArrowDef, state: GameState): ArrowDef {
+  if (!arrow.reversible || !(state.turned ?? []).includes(arrow.id)) return arrow;
+  const cells = cellsOf(arrow);
+  return { ...arrow, head: { ...cells[0] }, dir: OPPOSITE[headDirOf(arrow)], path: undefined };
+}
+
 /**
  * 绳随离场所经过的全部格：自身箭身 + 头部出口射线（棋盘内部分）。
  * 折线箭身依次沿前一段路线跟出，新占格恰为出口射线，故碰撞/预览/动画共用此路线。
@@ -70,6 +82,7 @@ export function initialState(level: LevelDef): GameState {
     levelId: level.id,
     remaining: level.arrows.map((a) => a.id),
     open,
+    turned: [],
   };
 }
 
@@ -78,6 +91,7 @@ export function cloneState(state: GameState): GameState {
     levelId: state.levelId,
     remaining: [...state.remaining],
     open: { ...state.open },
+    turned: [...(state.turned ?? [])],
   };
 }
 
@@ -94,14 +108,16 @@ export function gateMap(level: LevelDef): Map<string, GroupId> {
  * 自身原占用格天然不在射线上；开启闸门可通过，关闭闸门与其他箭头阻挡。
  */
 export function checkMove(level: LevelDef, state: GameState, arrowId: string): MoveCheck {
-  const arrow = arrowById(level, arrowId);
+  const arrow = effectiveArrow(arrowById(level, arrowId), state);
   const cells = cellsOf(arrow);
   const head = cells[cells.length - 1];
   const v = DIR_VEC[headDirOf(arrow)];
   const occupied = new Map<string, string>();
   for (const id of state.remaining) {
     if (id === arrowId) continue;
-    for (const c of cellsOf(arrowById(level, id))) occupied.set(cellKey(c), id);
+    for (const c of cellsOf(effectiveArrow(arrowById(level, id), state))) {
+      occupied.set(cellKey(c), id);
+    }
   }
   const gates = gateMap(level);
   let c: Cell = { x: head.x + v.x, y: head.y + v.y };
@@ -128,6 +144,7 @@ export function applyMove(level: LevelDef, state: GameState, arrowId: string): M
   }
   const next = cloneState(state);
   next.remaining = next.remaining.filter((id) => id !== arrowId);
+  next.turned = next.turned.filter((id) => id !== arrowId);
   const arrow = arrowById(level, arrowId);
   let toggledGroup: GroupId | undefined;
   if (arrow.group) {
@@ -135,6 +152,19 @@ export function applyMove(level: LevelDef, state: GameState, arrowId: string): M
     toggledGroup = arrow.group;
   }
   return { ok: true, state: next, toggledGroup };
+}
+
+/** 调头：仅 ⇄ 箭头、原地翻转，不移动、不离场、不切换机关；永远可执行。 */
+export function applyTurn(level: LevelDef, state: GameState, arrowId: string): MoveResult {
+  const arrow = arrowById(level, arrowId);
+  if (!arrow.reversible || !state.remaining.includes(arrowId)) {
+    return { ok: false, state };
+  }
+  const next = cloneState(state);
+  next.turned = next.turned.includes(arrowId)
+    ? next.turned.filter((id) => id !== arrowId)
+    : [...next.turned, arrowId];
+  return { ok: true, state: next };
 }
 
 export function isWin(state: GameState): boolean {
@@ -164,5 +194,6 @@ export function exitDistance(level: LevelDef, arrow: ArrowDef): number {
 export function stateKey(state: GameState): string {
   const groups = Object.keys(state.open).sort() as GroupId[];
   const flags = groups.map((g) => (state.open[g] ? '1' : '0')).join('');
-  return `${[...state.remaining].sort().join('.')}|${flags}`;
+  const turned = [...(state.turned ?? [])].sort().join('.');
+  return `${[...state.remaining].sort().join('.')}|${flags}|${turned}`;
 }

@@ -21,6 +21,7 @@
   --violet-deep: #6f4bab;
   --violet-soft: #ece5f6;
   --coral: #d96a5b;
+  --coral-deep: #b04a3e;
   --coral-soft: #f8e6e2;
   --green: #5fa777;
   --green-soft: #e4f0e7;
@@ -399,10 +400,12 @@ body {
 .arrow--normal .arrow-body, .arrow--normal .arrow-head { fill: url(#grad-teal); }
 .arrow--diamond .arrow-body, .arrow--diamond .arrow-head { fill: url(#grad-amber); }
 .arrow--circle .arrow-body, .arrow--circle .arrow-head { fill: url(#grad-violet); }
+.arrow--reversible .arrow-body, .arrow--reversible .arrow-head { fill: url(#grad-coral); }
 .arrow-head { stroke-linejoin: round; stroke-width: 3; }
 .arrow--normal .arrow-head { stroke: var(--teal-deep); }
 .arrow--diamond .arrow-head { stroke: var(--amber-deep); }
 .arrow--circle .arrow-head { stroke: var(--violet-deep); }
+.arrow--reversible .arrow-head { stroke: var(--coral-deep); }
 .arrow-sheen { fill: #ffffff; opacity: 0.22; pointer-events: none; }
 /* 折线箭身：圆角描线路径 + 中心高光绳芯 */
 .arrow-body-poly { fill: none; stroke-width: 20; stroke-linecap: round; stroke-linejoin: round; }
@@ -414,6 +417,12 @@ body {
 .arrow-badge-sym { font-size: 14px; font-weight: 800; text-anchor: middle; pointer-events: none; }
 .arrow--diamond .arrow-badge-sym { fill: var(--amber-deep); }
 .arrow--circle .arrow-badge-sym { fill: var(--violet-deep); }
+.arrow--reversible .arrow-badge-sym { fill: var(--coral-deep); }
+.arrow.is-selected .arrow-shape { filter: drop-shadow(0 0 8px rgba(217, 106, 91, 0.9)); }
+/* ⇄ 选择条：调头与发射是两个显式按钮，避免误触 */
+.sel-bar { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.sel-label { font-size: 14px; font-weight: 800; color: var(--coral-deep); }
+.sel-bar .btn--primary { padding: 10px 22px; }
 .arrow:hover .arrow-shape { filter: drop-shadow(0 3px 6px rgba(60, 71, 89, 0.28)); }
 .arrow.is-exiting { pointer-events: none; }
 .arrow.is-blocker .arrow-shape { animation: blocker-flash 0.6s ease 2; filter: drop-shadow(0 0 7px rgba(217, 106, 91, 0.85)); }

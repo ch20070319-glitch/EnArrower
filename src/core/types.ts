@@ -14,6 +14,8 @@ export interface ArrowDef {
   group?: GroupId;
   /** 折线箭身：尾→头的相邻不重复坐标串（第一轮最多一个直角弯）。缺省时按 head/dir/len 推导直箭身。 */
   path?: Cell[];
+  /** ⇄ 可调头箭头：第一轮仅直箭头；调头沿原轴翻转 180°，占格不变。 */
+  reversible?: boolean;
 }
 
 export interface MechanismDef {
@@ -38,6 +40,8 @@ export interface GameState {
   levelId: string;
   remaining: string[];
   open: Partial<Record<GroupId, boolean>>;
+  /** 已调头（相对初始朝向翻转）的 ⇄ 箭头 id；旧存档缺省视为 []。 */
+  turned: string[];
 }
 
 export type Blocker =

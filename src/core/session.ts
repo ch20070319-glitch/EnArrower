@@ -1,4 +1,4 @@
-import { applyMove, checkMove, cloneState, initialState, isWin } from './rules';
+import { applyMove, applyTurn, checkMove, cloneState, initialState, isWin } from './rules';
 import { GameState, LevelDef, MoveResult } from './types';
 
 /**
@@ -28,6 +28,17 @@ export class GameSession {
   commitMove(arrowId: string): MoveResult {
     const snapshot = cloneState(this.state);
     const result = applyMove(this.level, this.state, arrowId);
+    if (result.ok) {
+      this.history.push(snapshot);
+      this.state = result.state;
+    }
+    return result;
+  }
+
+  /** 提交一次调头：与离场一样占一步撤销历史。 */
+  commitTurn(arrowId: string): MoveResult {
+    const snapshot = cloneState(this.state);
+    const result = applyTurn(this.level, this.state, arrowId);
     if (result.ok) {
       this.history.push(snapshot);
       this.state = result.state;

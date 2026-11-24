@@ -140,4 +140,44 @@ describe('会话：撤销 / 重开', () => {
     expect(session.won).toBe(false);
     expect(session.state.remaining).toEqual(['A']);
   });
+
+  it('调头占一步历史，撤销恢复朝向且不触碰闸门', () => {
+    const level = {
+      ...SAMPLE_LEVEL,
+      id: 'turn-session',
+      arrows: [
+        ...SAMPLE_LEVEL.arrows,
+        { id: 'R', head: { x: 4, y: 4 }, dir: 'right' as const, len: 1 as const, reversible: true },
+      ],
+    };
+    const session = new GameSession(level);
+    const before = session.state;
+    expect(session.commitTurn('R').ok).toBe(true);
+    expect(session.state.turned).toEqual(['R']);
+    expect(session.state.open).toEqual(before.open);
+    expect(session.canUndo).toBe(true);
+    session.undo();
+    expect(session.state.turned).toEqual([]);
+    expect(session.state.remaining).toEqual(before.remaining);
+  });
+
+  it('普通箭头不能调头，不进入历史', () => {
+    const session = new GameSession(SAMPLE_LEVEL);
+    expect(session.commitTurn('A').ok).toBe(false);
+    expect(session.canUndo).toBe(false);
+  });
+
+  it('反复调头不会让求解器死循环（状态键含朝向）', () => {
+    const level = {
+      ...SAMPLE_LEVEL,
+      id: 'turn-cycle',
+      arrows: [
+        { id: 'R', head: { x: 2, y: 2 }, dir: 'right' as const, len: 1 as const, reversible: true },
+      ],
+      mechanisms: [],
+    };
+    const result = solve(level, initialState(level));
+    expect(result.solvable).toBe(true);
+    expect(result.visited).toBeLessThan(20);
+  });
 });

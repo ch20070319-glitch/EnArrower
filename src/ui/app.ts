@@ -1,6 +1,7 @@
 import { GameSession } from '../core/session';
+import { effectiveArrow, sweptCells } from '../core/rules';
 import { hint } from '../core/solver';
-import { GROUP_SYMBOL } from '../core/types';
+import { Dir, GROUP_SYMBOL } from '../core/types';
 import { LEVELS, levelById } from '../levels/levels';
 import {
   CurrentSave,
@@ -22,6 +23,8 @@ function reducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+const DIR_NAME: Record<Dir, string> = { up: '上', down: '下', left: '左', right: '右' };
+
 function detectStorage(): StorageLike | null {
   try {
     const s = window.localStorage;
@@ -41,6 +44,7 @@ export class App {
   private board: BoardView | null = null;
   private locked = false;
   private inspectMode = false;
+  private selectedId: string | null = null;
   private winShown = false;
   private storageWarned = false;
   private toastTimer = 0;
@@ -61,6 +65,9 @@ export class App {
     $('btn-restart').addEventListener('click', () => this.restart());
     $('btn-hint').addEventListener('click', () => this.giveHint());
     $('btn-inspect').addEventListener('click', () => this.toggleInspect());
+    $('btn-turn').addEventListener('click', () => this.turnSelected());
+    $('btn-fire').addEventListener('click', () => this.fireSelected());
+    $('btn-sel-close').addEventListener('click', () => this.clearSelection());
     $('btn-next').addEventListener('click', () => this.nextLevel());
     $('btn-replay').addEventListener('click', () => {
       if (this.session) this.startLevel(this.session.level.id);
@@ -152,6 +159,8 @@ export class App {
         : new GameSession(level);
     this.locked = false;
     this.inspectMode = false;
+    this.selectedId = null;
+    $('sel-bar').hidden = true;
     $('btn-inspect').setAttribute('aria-pressed', 'false');
     this.hideWin();
     this.showScreen('game');
@@ -161,7 +170,7 @@ export class App {
     $('board-wrap').classList.toggle('board-wrap--tall', level.height > level.width);
     this.board = new BoardView($('board-wrap'), level);
     this.board.setCallbacks({
-      onActivate: (id) => this.attemptMove(id),
+      onActivate: (id) => this.onArrowActivate(id),
       onHover: (id) => this.hoverPreview(id),
     });
     this.board.render(this.session.state);
@@ -169,6 +178,17 @@ export class App {
     this.updateControls();
     this.persist();
     if (this.session.won) this.showWin();
+  }
+
+  /** 普通箭头单击即离场；⇄ 箭头单击只选中，调头/发射由选择条显式触发。 */
+  private onArrowActivate(id: string): void {
+    if (this.locked || !this.session) return;
+    const def = this.session.level.arrows.find((a) => a.id === id);
+    if (def?.reversible && !this.inspectMode) {
+      this.selectArrow(id);
+      return;
+    }
+    void this.attemptMove(id);
   }
 
   private async attemptMove(arrowId: string): Promise<void> {
@@ -191,6 +211,7 @@ export class App {
     this.locked = true;
     this.updateControls();
     this.board.clearPreview();
+    this.board.clearRay();
     await this.board.animateExit(arrowId, reducedMotion());
 
     const result = this.session.commitMove(arrowId);
@@ -217,10 +238,60 @@ export class App {
     this.updateControls();
   }
 
+  /* ---------- ⇄ 可调头箭头 ---------- */
+
+  private selectArrow(arrowId: string): void {
+    if (!this.session || !this.board) return;
+    this.selectedId = arrowId;
+    this.board.setSelected(arrowId);
+    this.updateSelBar();
+    this.setStatus('已选中 ⇄ 箭头：先看清出口方向，再选择调头或发射。', '');
+  }
+
+  private clearSelection(): void {
+    this.selectedId = null;
+    $('sel-bar').hidden = true;
+    this.board?.setSelected(null);
+    this.board?.clearRay();
+  }
+
+  private updateSelBar(): void {
+    if (!this.session || !this.board || !this.selectedId) return;
+    const def = this.session.level.arrows.find((a) => a.id === this.selectedId);
+    if (!def) return;
+    const eff = effectiveArrow(def, this.session.state);
+    $('sel-bar').hidden = false;
+    $('sel-label').textContent = `⇄ 当前向${DIR_NAME[eff.dir]}`;
+    this.board.previewRay(sweptCells(this.session.level, eff));
+  }
+
+  private turnSelected(): void {
+    if (this.locked || !this.session || !this.board || !this.selectedId) return;
+    const result = this.session.commitTurn(this.selectedId);
+    if (!result.ok) return;
+    this.board.render(this.session.state);
+    this.updateSelBar();
+    this.persist();
+    this.updateControls();
+    const eff = effectiveArrow(
+      this.session.level.arrows.find((a) => a.id === this.selectedId)!,
+      this.session.state,
+    );
+    this.setStatus(`已调头：现在向${DIR_NAME[eff.dir]}。调头不移动、不触发闸门。`, 'good');
+  }
+
+  private fireSelected(): void {
+    if (this.locked || !this.selectedId) return;
+    const id = this.selectedId;
+    this.clearSelection();
+    void this.attemptMove(id);
+  }
+
   private undo(): void {
     if (this.locked || !this.session || !this.board) return;
     if (!this.session.undo()) return;
     this.hideWin();
+    this.clearSelection();
     this.board.render(this.session.state);
     this.persist();
     this.updateControls();
@@ -231,6 +302,7 @@ export class App {
     if (this.locked || !this.session || !this.board) return;
     this.session.restart();
     this.hideWin();
+    this.clearSelection();
     this.board.render(this.session.state);
     this.persist();
     this.updateControls();
@@ -243,6 +315,9 @@ export class App {
     if (h.kind === 'move') {
       this.board.flashHint(h.arrowId);
       this.setStatus('提示：试试高亮的这支箭头（不会自动移动）。', 'good');
+    } else if (h.kind === 'turn') {
+      this.board.flashHint(h.arrowId);
+      this.setStatus('提示：先将 ⇄ 箭头调头，再考虑发射。', 'good');
     } else if (h.kind === 'dead-end') {
       this.setStatus('当前顺序已无法通关，请撤销或重开。', 'warn');
       for (const id of ['btn-undo', 'btn-restart']) {
@@ -290,11 +365,15 @@ export class App {
     if (this.locked || this.inspectMode || !this.session || !this.board) return;
     if (!arrowId) {
       this.board.clearPreview();
+      if (this.selectedId) this.updateSelBar();
+      else this.board.clearRay();
       return;
     }
     const arrow = this.session.level.arrows.find((a) => a.id === arrowId);
     if (arrow?.group) {
       this.board.preview(arrow.group, !this.session.state.open[arrow.group], arrowId);
+    } else if (arrow?.reversible) {
+      this.board.previewRay(sweptCells(this.session.level, effectiveArrow(arrow, this.session.state)));
     } else {
       this.board.clearPreview();
     }
@@ -342,7 +421,10 @@ export class App {
     if (key === 'z') this.undo();
     else if (key === 'r') this.restart();
     else if (key === 'h') this.giveHint();
-    else if (e.key === 'Escape' && this.inspectMode) this.toggleInspect();
+    else if (e.key === 'Escape') {
+      if (this.selectedId) this.clearSelection();
+      else if (this.inspectMode) this.toggleInspect();
+    }
   }
 
   /* ---------- 状态与存档 ---------- */
@@ -354,6 +436,8 @@ export class App {
     $<HTMLButtonElement>('btn-hint').disabled = this.locked;
     $<HTMLButtonElement>('btn-inspect').disabled = this.locked;
     $<HTMLButtonElement>('btn-game-back').disabled = this.locked;
+    $<HTMLButtonElement>('btn-turn').disabled = this.locked;
+    $<HTMLButtonElement>('btn-fire').disabled = this.locked;
     $('game-count').textContent = `${this.session.state.remaining.length} 支`;
   }
 

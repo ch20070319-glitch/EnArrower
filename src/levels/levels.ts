@@ -414,6 +414,38 @@ export const LEVELS: LevelDef[] = [
     ],
     mechanisms: [{ group: 'diamond', initialOpen: false, gates: [{ x: 4, y: 6 }] }],
   },
+  {
+    id: 'l21',
+    index: 21,
+    name: '调头初试',
+    goal: '⇄ 箭头右边被闸门封死，开关又被它自己挡着：点击选中，先调头，再向左发射。',
+    width: 7,
+    height: 7,
+    arrows: [
+      { id: 'r', head: { x: 3, y: 3 }, dir: 'right', len: 2, reversible: true },
+      { id: 's', head: { x: 3, y: 5 }, dir: 'up', len: 1, group: 'diamond' },
+      { id: 'a', head: { x: 6, y: 5 }, dir: 'up', len: 2 },
+    ],
+    mechanisms: [{ group: 'diamond', initialOpen: false, gates: [{ x: 5, y: 3 }] }],
+  },
+  {
+    id: 'l22',
+    index: 22,
+    name: '双向抉择',
+    goal: '两侧都被封住：先放 ○ 开关疏通左路，再让 ⇄ 箭头调头向左。右路永远打不开。',
+    width: 7,
+    height: 7,
+    arrows: [
+      { id: 'r', head: { x: 3, y: 3 }, dir: 'right', len: 2, reversible: true },
+      { id: 'c', head: { x: 1, y: 3 }, dir: 'up', len: 1 },
+      { id: 't', head: { x: 0, y: 0 }, dir: 'right', len: 1, group: 'circle' },
+      { id: 's', head: { x: 3, y: 5 }, dir: 'up', len: 1, group: 'diamond' },
+    ],
+    mechanisms: [
+      { group: 'diamond', initialOpen: false, gates: [{ x: 5, y: 3 }] },
+      { group: 'circle', initialOpen: false, gates: [{ x: 1, y: 1 }] },
+    ],
+  },
 ];
 
 export function levelById(id: string): LevelDef | undefined {

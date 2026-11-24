@@ -53,6 +53,18 @@ function validState(v: unknown, level: LevelDef): v is GameState {
   for (const g of groups) {
     if (typeof open[g] !== 'boolean') return false;
   }
+  // 本轮新增字段：旧存档无 turned 视为 []；存在时必须是 remaining 中 ⇄ 箭头的无重复子集。
+  if (s.turned !== undefined) {
+    if (!Array.isArray(s.turned)) return false;
+    const reversible = new Set(level.arrows.filter((a) => a.reversible).map((a) => a.id));
+    const seenTurned = new Set<string>();
+    for (const id of s.turned) {
+      if (typeof id !== 'string' || !reversible.has(id) || !seen.has(id) || seenTurned.has(id)) {
+        return false;
+      }
+      seenTurned.add(id);
+    }
+  }
   return true;
 }
 

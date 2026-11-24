@@ -53,6 +53,10 @@ export function validateLevel(level: LevelDef): ValidationError[] {
     } else if (a.len < 1 || a.len > 3) {
       err(`箭头 ${a.id} 长度 ${a.len} 超出 1~3`);
     }
+    if (a.reversible) {
+      if (a.path) err(`箭头 ${a.id} 第一轮可调头箭头必须是直箭头`);
+      if (a.group) err(`箭头 ${a.id} 可调头箭头不同时作为机关开关（徽记冲突）`);
+    }
     for (const c of cellsOf(a)) {
       if (!inBoard(level, c)) err(`箭头 ${a.id} 占用格越界 (${c.x},${c.y})`);
       const key = cellKey(c);

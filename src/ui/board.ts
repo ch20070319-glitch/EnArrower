@@ -1,4 +1,4 @@
-import { cellKey, cellsOf, exitDistance, headDirOf } from '../core/rules';
+import { cellKey, cellsOf, effectiveArrow, exitDistance, headDirOf } from '../core/rules';
 import { ArrowDef, Cell, DIR_VEC, GameState, GroupId, GROUP_SYMBOL, LevelDef } from '../core/types';
 
 const CELL = 100;
@@ -38,6 +38,8 @@ export class BoardView {
   private gateNodes = new Map<string, SVGGElement>();
   private cellNodes = new Map<string, SVGRectElement>();
   private timers = new Set<number>();
+  private state: GameState | null = null;
+  private selectedId: string | null = null;
   private callbacks: BoardCallbacks = { onActivate: () => {}, onHover: () => {} };
 
   constructor(container: HTMLElement, level: LevelDef) {
@@ -62,6 +64,9 @@ export class BoardView {
       </linearGradient>
       <linearGradient id="grad-violet" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0" stop-color="#ab8ce0"/><stop offset="0.55" stop-color="#8a63c9"/><stop offset="1" stop-color="#68459f"/>
+      </linearGradient>
+      <linearGradient id="grad-coral" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#e88a76"/><stop offset="0.55" stop-color="#d96a5b"/><stop offset="1" stop-color="#b04a3e"/>
       </linearGradient>`;
     this.svg.appendChild(defs);
 
@@ -95,6 +100,7 @@ export class BoardView {
 
   render(state: GameState): void {
     this.clearTimers();
+    this.state = state;
     this.arrowsLayer.innerHTML = '';
     this.gatesLayer.innerHTML = '';
     this.arrowNodes.clear();
@@ -110,9 +116,12 @@ export class BoardView {
     }
     for (const id of state.remaining) {
       const arrow = this.level.arrows.find((a) => a.id === id)!;
-      const node = this.buildArrow(arrow);
+      const node = this.buildArrow(arrow, state);
       this.arrowsLayer.appendChild(node);
       this.arrowNodes.set(id, node);
+    }
+    if (this.selectedId && this.arrowNodes.has(this.selectedId)) {
+      this.arrowNode(this.selectedId)?.classList.add('is-selected');
     }
   }
 
@@ -136,20 +145,23 @@ export class BoardView {
     return node;
   }
 
-  private buildArrow(arrow: ArrowDef): SVGGElement {
-    if (arrow.path) return this.buildPolyArrow(arrow);
+  private buildArrow(def: ArrowDef, state: GameState): SVGGElement {
+    if (def.path) return this.buildPolyArrow(def);
+    const arrow = effectiveArrow(def, state);
     const cx = arrow.head.x * CELL + CELL / 2;
     const cy = arrow.head.y * CELL + CELL / 2;
-    const kind = arrow.group ? arrow.group : 'normal';
+    const kind = def.reversible ? 'reversible' : def.group ? def.group : 'normal';
     const mover = el('g', { class: 'arrow-mover', 'data-arrow-id': arrow.id });
     const node = el('g', {
       class: `arrow arrow--${kind}`,
       transform: `translate(${cx},${cy}) rotate(${DIR_DEG[arrow.dir]})`,
       tabindex: '0',
       role: 'button',
-      'aria-label': `箭头，向${DIR_NAME[arrow.dir]}，长度 ${arrow.len}${
-        arrow.group ? `，${GROUP_SYMBOL[arrow.group]} 开关` : ''
-      }，头部在第 ${arrow.head.x + 1} 列第 ${arrow.head.y + 1} 行`,
+      'aria-label': def.reversible
+        ? `可调头箭头，当前向${DIR_NAME[arrow.dir]}，长度 ${arrow.len}，点击选中后可调头或发射`
+        : `箭头，向${DIR_NAME[arrow.dir]}，长度 ${arrow.len}${
+            arrow.group ? `，${GROUP_SYMBOL[arrow.group]} 开关` : ''
+          }，头部在第 ${arrow.head.x + 1} 列第 ${arrow.head.y + 1} 行`,
     });
     const shape = el('g', { class: 'arrow-shape' });
     const back = (arrow.len - 1) * CELL;
@@ -163,11 +175,11 @@ export class BoardView {
       el('rect', { class: 'arrow-sheen', x: -back - 38, y: -6.5, width: back + 28, height: 4, rx: 2 }),
     );
     shape.appendChild(el('path', { class: 'arrow-head', d: 'M 40 0 L -8 -22 L -8 22 Z' }));
-    if (arrow.group) {
+    if (arrow.group || def.reversible) {
       const bx = -back / 2 - 24;
       shape.appendChild(el('circle', { class: 'arrow-badge', cx: bx, cy: 0, r: 10 }));
       const sym = el('text', { class: 'arrow-badge-sym', x: bx, y: 5 });
-      sym.textContent = GROUP_SYMBOL[arrow.group];
+      sym.textContent = def.reversible ? '⇄' : GROUP_SYMBOL[arrow.group!];
       shape.appendChild(sym);
     }
     node.appendChild(shape);
@@ -302,7 +314,8 @@ export class BoardView {
    * 完成逻辑只执行一次；rAF 之外有兜底定时器，后台标签页也不会永久锁死。
    */
   animateExit(arrowId: string, reducedMotion: boolean): Promise<void> {
-    const arrow = this.level.arrows.find((a) => a.id === arrowId)!;
+    const def = this.level.arrows.find((a) => a.id === arrowId)!;
+    const arrow = this.state ? effectiveArrow(def, this.state) : def;
     const mover = this.arrowNodes.get(arrowId);
     if (!mover) return Promise.resolve();
     if (arrow.path) return this.animatePolyExit(arrow, mover, reducedMotion);
@@ -417,6 +430,13 @@ export class BoardView {
       };
       raf = requestAnimationFrame(tick);
     });
+  }
+
+  /** ⇄ 箭头选中态：与提示/阻挡高亮互不干扰。 */
+  setSelected(id: string | null): void {
+    if (this.selectedId) this.arrowNode(this.selectedId)?.classList.remove('is-selected');
+    this.selectedId = id;
+    if (id) this.arrowNode(id)?.classList.add('is-selected');
   }
 
   /** 出口方向预览：高亮路线经过的格子（与碰撞判定同一条射线）。 */

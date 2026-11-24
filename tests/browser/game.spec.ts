@@ -512,14 +512,116 @@ test.describe('大棋盘与折线箭头（19-20）', () => {
     expect(save.current.state.open.diamond).toBe(true);
   });
 
-  test('AC27 第20关（末关）大棋盘完整通关且无下一关按钮', async ({ page }) => {
+  test('AC27 第20关大棋盘完整通关，下一关指向调头教学', async ({ page }) => {
     await fresh(page, true);
     await openLevel(page, 20);
     for (const id of ['k1', 'k2', 's', 'a', 'b', 'c', 'd', 'e', 'f']) await clickArrow(page, id);
     await expect(page.locator('#win-overlay')).toBeVisible();
-    await expect(page.locator('#btn-next')).toBeHidden();
+    await expect(page.locator('#btn-next')).toContainText('调头初试');
     const save = await readSave(page);
     expect(save.completed).toContain('l20');
     expect(save.current.state.remaining).toEqual([]);
+  });
+});
+
+test.describe('可调头箭头（21-22）', () => {
+  test('AC28 单击 ⇄ 只选中不移动；发射被挡状态不变；调头后向左离场', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 21);
+    const before = await readSave(page);
+    await clickArrow(page, 'r');
+    await expect(page.locator('#sel-bar')).toBeVisible();
+    await expect(page.locator('#sel-label')).toContainText('当前向右');
+    const selected = await readSave(page);
+    expect(selected.current.state.remaining).toEqual(before.current.state.remaining);
+    expect(selected.current.history.length).toBe(0);
+
+    await page.click('#btn-fire');
+    await page.waitForTimeout(300);
+    await expect(page.locator('#status')).toContainText('被挡住');
+    const blocked = await readSave(page);
+    expect(blocked.current.state.remaining).toEqual(before.current.state.remaining);
+    expect(blocked.current.history.length).toBe(0);
+
+    await clickArrow(page, 'r');
+    await page.click('#btn-turn');
+    await expect(page.locator('#sel-label')).toContainText('当前向左');
+    const turned = await readSave(page);
+    expect(turned.current.state.turned).toEqual(['r']);
+    expect(turned.current.history.length).toBe(1);
+    expect(turned.current.state.open.diamond).toBe(false);
+
+    await page.click('#btn-fire');
+    await page.waitForTimeout(700);
+    const fired = await readSave(page);
+    expect(fired.current.state.remaining).not.toContain('r');
+    expect(fired.current.history.length).toBe(2);
+
+    await page.click('#btn-undo');
+    const undone = await readSave(page);
+    expect(undone.current.state.remaining).toContain('r');
+    expect(undone.current.state.turned).toEqual(['r']);
+    await page.click('#btn-undo');
+    const undone2 = await readSave(page);
+    expect(undone2.current.state.turned).toEqual([]);
+  });
+
+  test('AC29 第21关完整通关：a → 调头 r → 发射 r → s', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 21);
+    await clickArrow(page, 'a');
+    await clickArrow(page, 'r');
+    await page.click('#btn-turn');
+    await page.click('#btn-fire');
+    await page.waitForTimeout(700);
+    await clickArrow(page, 's');
+    await expect(page.locator('#win-overlay')).toBeVisible();
+    const save = await readSave(page);
+    expect(save.completed).toContain('l21');
+  });
+
+  test('AC30 调头后刷新页面：继续游戏恢复朝向', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 21);
+    await clickArrow(page, 'r');
+    await page.click('#btn-turn');
+    await page.reload();
+    await page.click('#btn-start');
+    await expect(page.locator('#screen-game')).toBeVisible();
+    const save = await readSave(page);
+    expect(save.current.state.turned).toEqual(['r']);
+    await expect(page.locator('.arrow-mover[data-arrow-id="r"] .arrow')).toHaveAttribute(
+      'aria-label',
+      /当前向左/,
+    );
+  });
+
+  test('AC31 第22关（末关）双向抉择：疏通左路后调头通关，无下一关按钮', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 22);
+    await clickArrow(page, 't');
+    await clickArrow(page, 'c');
+    await clickArrow(page, 'r');
+    await page.click('#btn-fire');
+    await page.waitForTimeout(300);
+    await expect(page.locator('#status')).toContainText('被挡住');
+    await clickArrow(page, 'r');
+    await page.click('#btn-turn');
+    await page.click('#btn-fire');
+    await page.waitForTimeout(700);
+    await clickArrow(page, 's');
+    await expect(page.locator('#win-overlay')).toBeVisible();
+    await expect(page.locator('#btn-next')).toBeHidden();
+    const save = await readSave(page);
+    expect(save.completed).toContain('l22');
+  });
+
+  test('AC32 提示识别调头操作：a 离场后提示先调头', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 21);
+    await clickArrow(page, 'a');
+    await page.click('#btn-hint');
+    await expect(page.locator('#status')).toContainText('调头');
+    await expect(page.locator('.arrow-mover[data-arrow-id="r"] .arrow.is-hint')).toHaveCount(1);
   });
 });
