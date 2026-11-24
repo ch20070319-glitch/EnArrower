@@ -90,5 +90,19 @@ export function validateLevel(level: LevelDef): ValidationError[] {
       err(`机关组 ${g} 没有任何开关箭头`);
     }
   }
+
+  const relayIds = new Set<string>();
+  for (const r of level.relays ?? []) {
+    if (!ids.has(r.leader)) err(`接力领头 ${r.leader} 不存在`);
+    if (!ids.has(r.follower)) err(`接力跟随 ${r.follower} 不存在`);
+    if (r.leader === r.follower) err(`接力对 ${r.leader} 领头与跟随相同`);
+    for (const id of [r.leader, r.follower]) {
+      if (relayIds.has(id)) err(`箭头 ${id} 属于多个接力对`);
+      relayIds.add(id);
+      const a = level.arrows.find((x) => x.id === id);
+      if (a?.reversible) err(`接力箭头 ${id} 第一轮不同时可调头`);
+      if (a?.path) err(`接力箭头 ${id} 第一轮必须是直箭头`);
+    }
+  }
   return errors;
 }

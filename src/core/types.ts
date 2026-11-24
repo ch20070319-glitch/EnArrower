@@ -24,6 +24,12 @@ export interface MechanismDef {
   gates: Cell[];
 }
 
+/** 接力对：点击领头 A 依次送出 A、B；跟随箭 B 不可单独移动。 */
+export interface RelayDef {
+  leader: string;
+  follower: string;
+}
+
 export interface LevelDef {
   id: string;
   index: number;
@@ -33,6 +39,7 @@ export interface LevelDef {
   height: number;
   arrows: ArrowDef[];
   mechanisms: MechanismDef[];
+  relays?: RelayDef[];
 }
 
 /** 稳定游戏状态：只含规则事实，不含动画坐标、输入锁或回调。 */

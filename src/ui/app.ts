@@ -1,5 +1,5 @@
 import { GameSession } from '../core/session';
-import { effectiveArrow, sweptCells } from '../core/rules';
+import { applyMove, checkRelay, effectiveArrow, relayOf, sweptCells } from '../core/rules';
 import { hint } from '../core/solver';
 import { Dir, GROUP_SYMBOL } from '../core/types';
 import { LEVELS, levelById } from '../levels/levels';
@@ -180,15 +180,73 @@ export class App {
     if (this.session.won) this.showWin();
   }
 
-  /** 普通箭头单击即离场；⇄ 箭头单击只选中，调头/发射由选择条显式触发。 */
+  /** 普通箭头单击即离场；⇄ 箭头单击只选中；接力跟随只高亮领头，领头启动整队接力。 */
   private onArrowActivate(id: string): void {
-    if (this.locked || !this.session) return;
+    if (this.locked || !this.session || !this.board) return;
     const def = this.session.level.arrows.find((a) => a.id === id);
     if (def?.reversible && !this.inspectMode) {
       this.selectArrow(id);
       return;
     }
+    const relay = relayOf(this.session.level, id);
+    if (relay && !this.inspectMode) {
+      if (relay.follower === id) {
+        this.board.flashRelay(relay.leader);
+        this.setStatus(`这是接力跟随箭 ${id}：请点击领头的 ${relay.leader} 启动接力。`, '');
+        return;
+      }
+      void this.attemptRelay(id);
+      return;
+    }
     void this.attemptMove(id);
+  }
+
+  /** 接力：预演双方 → A 动画 → 结算 A 机关 → B 动画 → 单次提交；失败双方原地不动。 */
+  private async attemptRelay(leaderId: string): Promise<void> {
+    if (this.locked || !this.session || !this.board) return;
+    const relay = this.session.level.relays?.find((r) => r.leader === leaderId);
+    if (!relay) return;
+    const check = checkRelay(this.session.level, this.session.state, leaderId);
+    if (!check.ok) {
+      this.board.flashBlocked(check.failedId ?? leaderId, check.blocker ?? { kind: 'arrow' });
+      const who = check.failedId ?? leaderId;
+      const msg =
+        check.blocker?.kind === 'gate'
+          ? `接力被挡住了：${GROUP_SYMBOL[check.blocker.group]} 闸门关闭中，${who} 过不去。先开门再启动，两支都留在原地。`
+          : `接力被挡住了：${who} 的路线上有箭头。两支都留在原地，换个顺序试试。`;
+      this.setStatus(msg, 'warn');
+      return;
+    }
+
+    this.locked = true;
+    this.updateControls();
+    this.board.clearPreview();
+    this.board.clearRay();
+    await this.board.animateExit(relay.leader, reducedMotion());
+    const mid = applyMove(this.session.level, this.session.state, relay.leader).state;
+    this.board.render(mid);
+    await this.board.animateExit(relay.follower, reducedMotion());
+
+    const result = this.session.commitRelay(leaderId);
+    this.board.render(this.session.state);
+    this.persist();
+    this.updateControls();
+
+    if (result.ok && this.session.won) {
+      recordCompletion(this.save, this.session.level.id);
+      this.persist();
+      this.locked = false;
+      this.showWin();
+      return;
+    }
+    this.locked = false;
+    this.setStatus(
+      result.toggledGroup
+        ? `接力完成：${relay.leader}、${relay.follower} 都已离场，${GROUP_SYMBOL[result.toggledGroup]} 机关已切换。`
+        : `接力完成：${relay.leader}、${relay.follower} 都已离场。`,
+      'good',
+    );
+    this.updateControls();
   }
 
   private async attemptMove(arrowId: string): Promise<void> {
@@ -318,6 +376,9 @@ export class App {
     } else if (h.kind === 'turn') {
       this.board.flashHint(h.arrowId);
       this.setStatus('提示：先将 ⇄ 箭头调头，再考虑发射。', 'good');
+    } else if (h.kind === 'relay') {
+      this.board.flashRelay(h.arrowId);
+      this.setStatus(`提示：启动接力 ${h.arrowId}，它会带着跟随箭一起离场。`, 'good');
     } else if (h.kind === 'dead-end') {
       this.setStatus('当前顺序已无法通关，请撤销或重开。', 'warn');
       for (const id of ['btn-undo', 'btn-restart']) {

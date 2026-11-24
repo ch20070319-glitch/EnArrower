@@ -1,25 +1,28 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyMove,
+  applyRelay,
   applyTurn,
   cellKey,
   cellsOf,
   checkMove,
+  checkRelay,
   exitDistance,
   headDirOf,
   initialState,
   isWin,
+  legalMoves,
   sweptCells,
 } from '../../src/core/rules';
 import { solve } from '../../src/core/solver';
 import { LEVELS } from '../../src/levels/levels';
 import { validateLevel } from '../../src/levels/validate';
 
-describe('22 个正式关卡', () => {
+describe('24 个正式关卡', () => {
   it('数量与编号连续', () => {
-    expect(LEVELS).toHaveLength(22);
-    expect(LEVELS.map((l) => l.index)).toEqual(Array.from({ length: 22 }, (_, i) => i + 1));
-    expect(new Set(LEVELS.map((l) => l.id)).size).toBe(22);
+    expect(LEVELS).toHaveLength(24);
+    expect(LEVELS.map((l) => l.index)).toEqual(Array.from({ length: 24 }, (_, i) => i + 1));
+    expect(new Set(LEVELS.map((l) => l.id)).size).toBe(24);
   });
 
   for (const level of LEVELS) {
@@ -38,6 +41,10 @@ describe('22 个正式关卡', () => {
             const turned = applyTurn(level, state, op.arrowId);
             expect(turned.ok).toBe(true);
             state = turned.state;
+          } else if (op.kind === 'relay') {
+            const moved = applyRelay(level, state, op.arrowId);
+            expect(moved.ok).toBe(true);
+            state = moved.state;
           } else {
             expect(checkMove(level, state, op.arrowId).ok).toBe(true);
             state = applyMove(level, state, op.arrowId).state;
@@ -52,13 +59,15 @@ describe('22 个正式关卡', () => {
         const next =
           first.kind === 'turn'
             ? applyTurn(level, initialState(level), first.arrowId).state
-            : applyMove(level, initialState(level), first.arrowId).state;
+            : first.kind === 'relay'
+              ? applyRelay(level, initialState(level), first.arrowId).state
+              : applyMove(level, initialState(level), first.arrowId).state;
         expect(solve(level, next).solvable).toBe(true);
       });
     });
   }
 
-  it('关卡分组符合教学规划（1-3 无机关，4-9 一组，10-12 两组，13-15 一组进阶，16-18 两组进阶，19 折线教学，20 大折线，21 调头教学，22 双向抉择）', () => {
+  it('关卡分组符合教学规划（1-3 无机关，4-9 一组，10-12 两组，13-15 一组进阶，16-18 两组进阶，19 折线教学，20 大折线，21 调头教学，22 双向抉择，23 接力教学，24 接力长链）', () => {
     for (const l of LEVELS.slice(0, 3)) expect(l.mechanisms).toHaveLength(0);
     for (const l of LEVELS.slice(3, 9)) expect(l.mechanisms).toHaveLength(1);
     for (const l of LEVELS.slice(9, 12)) expect(l.mechanisms).toHaveLength(2);
@@ -68,6 +77,8 @@ describe('22 个正式关卡', () => {
     expect(LEVELS[19].mechanisms).toHaveLength(1);
     expect(LEVELS[20].mechanisms).toHaveLength(1);
     expect(LEVELS[21].mechanisms).toHaveLength(2);
+    expect(LEVELS[22].mechanisms).toHaveLength(1);
+    expect(LEVELS[23].mechanisms).toHaveLength(2);
   });
 
   it('大棋盘面积约为旧同类关两倍（7×7=49 → 8×12=96）', () => {
@@ -172,5 +183,71 @@ describe('可调头箭头（⇄）', () => {
     // 会话层快照撤销在 solver-session 测试中覆盖；这里验证状态可逆
     const back = applyTurn(l21, s1, 'r').state;
     expect(back).toEqual(s0);
+  });
+});
+
+describe('接力箭头（A 带 B）', () => {
+  const l23 = LEVELS[22];
+  const l24 = LEVELS[23];
+
+  it('l23 初始接力被 B 前的闸门挡住，指出具体阻挡物', () => {
+    const s0 = initialState(l23);
+    const check = checkRelay(l23, s0, 'A');
+    expect(check.ok).toBe(false);
+    expect(check.failedId).toBe('B');
+    expect(check.blocker).toEqual({ kind: 'gate', group: 'diamond', cell: { x: 4, y: 3 } });
+  });
+
+  it('接力失败状态完全不变：A、B 都留在原地', () => {
+    const s0 = initialState(l23);
+    const result = applyRelay(l23, s0, 'A');
+    expect(result.ok).toBe(false);
+    expect(result.state).toBe(s0);
+    expect(result.state.remaining).toEqual(['A', 'B', 'C']);
+    expect(result.state.open.diamond).toBe(false);
+  });
+
+  it('跟随箭不可单独移动：legalMoves 不含 B', () => {
+    const s0 = initialState(l23);
+    expect(legalMoves(l23, s0)).not.toContain('B');
+    expect(legalMoves(l23, s0)).toContain('C');
+  });
+
+  it('开关 C 离场后接力成功：A、B 一次全部离场', () => {
+    let state = applyMove(l23, initialState(l23), 'C').state;
+    expect(state.open.diamond).toBe(true);
+    const result = applyRelay(l23, state, 'A');
+    expect(result.ok).toBe(true);
+    state = result.state;
+    expect(state.remaining).toEqual([]);
+    expect(isWin(state)).toBe(true);
+  });
+
+  it('l24 长链：s → 接力A/B → t → 接力C/D', () => {
+    let state = initialState(l24);
+    expect(checkRelay(l24, state, 'A').ok).toBe(false);
+    expect(checkMove(l24, state, 't').blocker).toMatchObject({ kind: 'arrow', arrowId: 'B' });
+    state = applyMove(l24, state, 's').state;
+    state = applyRelay(l24, state, 'A').state;
+    expect(state.remaining).toEqual(['C', 'D', 't']);
+    expect(checkMove(l24, state, 't').ok).toBe(true);
+    state = applyMove(l24, state, 't').state;
+    expect(checkRelay(l24, state, 'C').ok).toBe(true);
+    state = applyRelay(l24, state, 'C').state;
+    expect(isWin(state)).toBe(true);
+  });
+
+  it('l24 接力 C/D 在 ○ 门关闭时失败且状态不变', () => {
+    let state = initialState(l24);
+    state = applyMove(l24, state, 's').state;
+    state = applyRelay(l24, state, 'A').state;
+    const before = state;
+    const check = checkRelay(l24, state, 'C');
+    expect(check.ok).toBe(false);
+    expect(check.failedId).toBe('D');
+    expect(check.blocker).toMatchObject({ kind: 'gate', group: 'circle' });
+    const result = applyRelay(l24, state, 'C');
+    expect(result.ok).toBe(false);
+    expect(result.state).toBe(before);
   });
 });

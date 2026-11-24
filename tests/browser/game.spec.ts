@@ -118,6 +118,42 @@ async function samplePolyExit(page: Page, id: string) {
   }, id);
 }
 
+/** 接力动画采样：证明 A 先离场、B 后离场的顺序动画，而非同时瞬移。 */
+async function sampleRelay(page: Page, leader: string, follower: string) {
+  return page.evaluate(
+    async ({ leaderId, followerId }) => {
+      const moverOf = (id: string) =>
+        document.querySelector<SVGGElement>(`.arrow-mover[data-arrow-id="${id}"]`);
+      const leaderMover = moverOf(leaderId);
+      if (!leaderMover) throw new Error('leader not found: ' + leaderId);
+      let sawLeaderGoneFollowerPresent = false;
+      let bothGone = false;
+      leaderMover.querySelector('.arrow')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      const start = performance.now();
+      await new Promise<void>((resolve) => {
+        const tick = () => {
+          const lg = !moverOf(leaderId)?.isConnected;
+          const fg = !moverOf(followerId)?.isConnected;
+          if (lg && !fg) sawLeaderGoneFollowerPresent = true;
+          if (lg && fg) {
+            bothGone = true;
+            resolve();
+            return;
+          }
+          if (performance.now() - start > 2500) {
+            resolve();
+            return;
+          }
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+      return { sawLeaderGoneFollowerPresent, bothGone };
+    },
+    { leaderId: leader, followerId: follower },
+  );
+}
+
 test.describe('入口与构建', () => {
   test('AC01 打开首页，无控制台错误', async ({ page }) => {
     const errors: string[] = [];
@@ -596,7 +632,7 @@ test.describe('可调头箭头（21-22）', () => {
     );
   });
 
-  test('AC31 第22关（末关）双向抉择：疏通左路后调头通关，无下一关按钮', async ({ page }) => {
+  test('AC31 第22关双向抉择：疏通左路后调头通关', async ({ page }) => {
     await fresh(page, true);
     await openLevel(page, 22);
     await clickArrow(page, 't');
@@ -611,7 +647,7 @@ test.describe('可调头箭头（21-22）', () => {
     await page.waitForTimeout(700);
     await clickArrow(page, 's');
     await expect(page.locator('#win-overlay')).toBeVisible();
-    await expect(page.locator('#btn-next')).toBeHidden();
+    await expect(page.locator('#btn-next')).toContainText('接力过桥');
     const save = await readSave(page);
     expect(save.completed).toContain('l22');
   });
@@ -623,5 +659,73 @@ test.describe('可调头箭头（21-22）', () => {
     await page.click('#btn-hint');
     await expect(page.locator('#status')).toContainText('调头');
     await expect(page.locator('.arrow-mover[data-arrow-id="r"] .arrow.is-hint')).toHaveCount(1);
+  });
+});
+
+test.describe('接力箭头（23-24）', () => {
+  test('AC33 点 B 只高亮 A；开门前接力失败双方不动；开门后一次撤销全恢复', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 23);
+    const before = await readSave(page);
+    await expect(page.locator('.relay-link[data-leader="A"]')).toHaveCount(1);
+
+    await clickArrow(page, 'B');
+    await expect(page.locator('#status')).toContainText('领头');
+    await expect(page.locator('.arrow-mover[data-arrow-id="A"] .arrow.is-hint')).toHaveCount(1);
+    const afterB = await readSave(page);
+    expect(afterB.current.state.remaining).toEqual(before.current.state.remaining);
+    expect(afterB.current.history.length).toBe(0);
+
+    await clickArrow(page, 'A');
+    await expect(page.locator('#status')).toContainText('被挡住');
+    await expect(page.locator('#status')).toContainText('闸门');
+    const blocked = await readSave(page);
+    expect(blocked.current.state.remaining).toEqual(['A', 'B', 'C']);
+    expect(blocked.current.history.length).toBe(0);
+    expect(blocked.current.state.open.diamond).toBe(false);
+
+    await clickArrow(page, 'C');
+    await clickArrow(page, 'A');
+    await page.waitForTimeout(1200);
+    const relayed = await readSave(page);
+    expect(relayed.current.state.remaining).toEqual([]);
+    expect(relayed.current.history.length).toBe(2);
+    await expect(page.locator('#win-overlay')).toBeVisible();
+
+    await page.click('#btn-win-undo');
+    const undone = await readSave(page);
+    expect(undone.current.state.remaining).toEqual(['A', 'B']);
+    expect(undone.current.state.open.diamond).toBe(true);
+    await expect(page.locator('.arrow-mover[data-arrow-id="A"]')).toHaveCount(1);
+    await expect(page.locator('.arrow-mover[data-arrow-id="B"]')).toHaveCount(1);
+  });
+
+  test('AC34 第24关（末关）接力长链完整通关，无下一关按钮', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 24);
+    await clickArrow(page, 's');
+    await clickArrow(page, 'A');
+    await page.waitForTimeout(1200);
+    await clickArrow(page, 't');
+    await clickArrow(page, 'C');
+    await page.waitForTimeout(1200);
+    await expect(page.locator('#win-overlay')).toBeVisible();
+    await expect(page.locator('#btn-next')).toBeHidden();
+    const save = await readSave(page);
+    expect(save.completed).toContain('l24');
+    expect(save.current.state.remaining).toEqual([]);
+    expect(save.current.history.length).toBe(4);
+  });
+
+  test('AC35 接力顺序动画：A 先出、B 后出，逐帧可证', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 23);
+    await clickArrow(page, 'C');
+    const { sawLeaderGoneFollowerPresent, bothGone } = await sampleRelay(page, 'A', 'B');
+    expect(sawLeaderGoneFollowerPresent).toBe(true);
+    expect(bothGone).toBe(true);
+    const save = await readSave(page);
+    expect(save.current.state.remaining).toEqual([]);
+    expect(save.current.history.length).toBe(2);
   });
 });

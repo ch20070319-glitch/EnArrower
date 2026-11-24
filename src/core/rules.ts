@@ -171,8 +171,49 @@ export function isWin(state: GameState): boolean {
   return state.remaining.length === 0;
 }
 
+/** 接力对查询：id 作为领头或跟随所在的接力。 */
+export function relayOf(level: LevelDef, id: string): { leader: string; follower: string } | undefined {
+  return (level.relays ?? []).find((r) => r.leader === id || r.follower === id);
+}
+
+export interface RelayCheck extends MoveCheck {
+  /** 预演中实际被挡的那支箭（A 或 B）。 */
+  failedId?: string;
+}
+
+/**
+ * 接力预演：A 离场 → 结算 A 的机关 → B 尝试。
+ * 任一步被挡则整体失败并指出具体阻挡物；成功时不产生中间状态。
+ */
+export function checkRelay(level: LevelDef, state: GameState, leaderId: string): RelayCheck {
+  const relay = (level.relays ?? []).find((r) => r.leader === leaderId);
+  if (!relay) return { ok: false, failedId: leaderId };
+  const first = checkMove(level, state, relay.leader);
+  if (!first.ok) return { ok: false, blocker: first.blocker, failedId: relay.leader };
+  const mid = applyMove(level, state, relay.leader).state;
+  const second = checkMove(level, mid, relay.follower);
+  if (!second.ok) return { ok: false, blocker: second.blocker, failedId: relay.follower };
+  return { ok: true };
+}
+
+/** 接力提交：一次操作同时移除 A、B 并结算各自机关；失败时状态完全不变。 */
+export function applyRelay(level: LevelDef, state: GameState, leaderId: string): MoveResult {
+  const check = checkRelay(level, state, leaderId);
+  if (!check.ok) return { ok: false, blocker: check.blocker, state };
+  const relay = (level.relays ?? []).find((r) => r.leader === leaderId)!;
+  const first = applyMove(level, state, relay.leader);
+  const second = applyMove(level, first.state, relay.follower);
+  return { ok: true, state: second.state, toggledGroup: first.toggledGroup ?? second.toggledGroup };
+}
+
 export function legalMoves(level: LevelDef, state: GameState): string[] {
-  return state.remaining.filter((id) => checkMove(level, state, id).ok);
+  const followers = new Set((level.relays ?? []).map((r) => r.follower));
+  const leaders = new Set((level.relays ?? []).map((r) => r.leader));
+  return state.remaining.filter((id) => {
+    if (followers.has(id)) return false;
+    if (leaders.has(id)) return checkRelay(level, state, id).ok;
+    return checkMove(level, state, id).ok;
+  });
 }
 
 /** 尾部完全出界所需的绳随路线格数，供动画使用（规则无关，仅几何）。 */

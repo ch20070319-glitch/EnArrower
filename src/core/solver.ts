@@ -1,7 +1,7 @@
-import { applyMove, applyTurn, isWin, legalMoves, stateKey } from './rules';
+import { applyMove, applyRelay, applyTurn, isWin, legalMoves, stateKey } from './rules';
 import { GameState, LevelDef } from './types';
 
-export type SolverOp = { kind: 'exit' | 'turn'; arrowId: string };
+export type SolverOp = { kind: 'exit' | 'turn' | 'relay'; arrowId: string };
 
 export interface SolveResult {
   solvable: boolean;
@@ -20,6 +20,7 @@ export function solve(level: LevelDef, start: GameState): SolveResult {
   const visited = new Set<string>();
   const path: SolverOp[] = [];
   const reversibleIds = level.arrows.filter((a) => a.reversible).map((a) => a.id);
+  const leaders = new Set((level.relays ?? []).map((r) => r.leader));
 
   function dfs(state: GameState): boolean {
     if (isWin(state)) return true;
@@ -27,8 +28,9 @@ export function solve(level: LevelDef, start: GameState): SolveResult {
     visited.add(key);
     if (dead.has(key)) return false;
     for (const id of legalMoves(level, state)) {
-      const result = applyMove(level, state, id);
-      path.push({ kind: 'exit', arrowId: id });
+      const isRelay = leaders.has(id);
+      const result = isRelay ? applyRelay(level, state, id) : applyMove(level, state, id);
+      path.push({ kind: isRelay ? 'relay' : 'exit', arrowId: id });
       if (dfs(result.state)) return true;
       path.pop();
     }
@@ -50,6 +52,7 @@ export function solve(level: LevelDef, start: GameState): SolveResult {
 export type HintResult =
   | { kind: 'move'; arrowId: string }
   | { kind: 'turn'; arrowId: string }
+  | { kind: 'relay'; arrowId: string }
   | { kind: 'dead-end' }
   | { kind: 'won' };
 
@@ -59,7 +62,7 @@ export function hint(level: LevelDef, state: GameState): HintResult {
   const current = solve(level, state);
   if (!current.solvable || !current.solution) return { kind: 'dead-end' };
   const first = current.solution[0];
-  return first.kind === 'turn'
-    ? { kind: 'turn', arrowId: first.arrowId }
-    : { kind: 'move', arrowId: first.arrowId };
+  if (first.kind === 'turn') return { kind: 'turn', arrowId: first.arrowId };
+  if (first.kind === 'relay') return { kind: 'relay', arrowId: first.arrowId };
+  return { kind: 'move', arrowId: first.arrowId };
 }

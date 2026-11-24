@@ -446,6 +446,45 @@ export const LEVELS: LevelDef[] = [
       { group: 'circle', initialOpen: false, gates: [{ x: 1, y: 1 }] },
     ],
   },
+  {
+    id: 'l23',
+    index: 23,
+    name: '接力过桥',
+    goal: 'A 带 B 一起过桥：B 被 ◇ 闸门挡住。先放开关 C 开门，再点击 A 启动接力。',
+    width: 7,
+    height: 7,
+    arrows: [
+      { id: 'A', head: { x: 0, y: 1 }, dir: 'right', len: 1 },
+      { id: 'B', head: { x: 1, y: 3 }, dir: 'right', len: 2 },
+      { id: 'C', head: { x: 0, y: 5 }, dir: 'right', len: 1, group: 'diamond' },
+    ],
+    mechanisms: [{ group: 'diamond', initialOpen: false, gates: [{ x: 4, y: 3 }] }],
+    relays: [{ leader: 'A', follower: 'B' }],
+  },
+  {
+    id: 'l24',
+    index: 24,
+    name: '接力长链',
+    goal: '两组接力排成链：先开 ◇ 门送 A/B，B 让出位置后 ○ 开关才能走，最后送 C/D。',
+    width: 8,
+    height: 8,
+    arrows: [
+      { id: 'A', head: { x: 0, y: 1 }, dir: 'right', len: 1 },
+      { id: 'B', head: { x: 1, y: 4 }, dir: 'right', len: 2 },
+      { id: 's', head: { x: 0, y: 7 }, dir: 'right', len: 1, group: 'diamond' },
+      { id: 'C', head: { x: 6, y: 0 }, dir: 'down', len: 1 },
+      { id: 'D', head: { x: 7, y: 2 }, dir: 'down', len: 1 },
+      { id: 't', head: { x: 1, y: 6 }, dir: 'up', len: 1, group: 'circle' },
+    ],
+    mechanisms: [
+      { group: 'diamond', initialOpen: false, gates: [{ x: 4, y: 4 }] },
+      { group: 'circle', initialOpen: false, gates: [{ x: 7, y: 5 }] },
+    ],
+    relays: [
+      { leader: 'A', follower: 'B' },
+      { leader: 'C', follower: 'D' },
+    ],
+  },
 ];
 
 export function levelById(id: string): LevelDef | undefined {

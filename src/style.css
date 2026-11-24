@@ -419,6 +419,13 @@ body {
 .arrow--circle .arrow-badge-sym { fill: var(--violet-deep); }
 .arrow--reversible .arrow-badge-sym { fill: var(--coral-deep); }
 .arrow.is-selected .arrow-shape { filter: drop-shadow(0 0 8px rgba(217, 106, 91, 0.9)); }
+/* 接力虚线连接：领头→跟随 */
+.relay-link { stroke: var(--muted); stroke-width: 4; stroke-dasharray: 10 10; stroke-linecap: round; opacity: 0.7; }
+.relay-link.is-active { stroke: var(--teal); opacity: 1; animation: relay-pulse 0.6s ease 2; }
+@keyframes relay-pulse {
+  0%, 100% { stroke-width: 4; }
+  50% { stroke-width: 7; }
+}
 /* ⇄ 选择条：调头与发射是两个显式按钮，避免误触 */
 .sel-bar { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
 .sel-label { font-size: 14px; font-weight: 800; color: var(--coral-deep); }

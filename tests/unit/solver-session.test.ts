@@ -180,4 +180,46 @@ describe('会话：撤销 / 重开', () => {
     expect(result.solvable).toBe(true);
     expect(result.visited).toBeLessThan(20);
   });
+
+  it('接力一次撤销完整恢复 A、B 与闸门', () => {
+    const level = {
+      ...SAMPLE_LEVEL,
+      id: 'relay-session',
+      arrows: [
+        { id: 'A', head: { x: 0, y: 0 }, dir: 'right' as const, len: 1 as const, group: 'diamond' as const },
+        { id: 'B', head: { x: 0, y: 1 }, dir: 'right' as const, len: 1 as const },
+      ],
+      mechanisms: [{ group: 'diamond' as const, initialOpen: false, gates: [{ x: 3, y: 1 }] }],
+      relays: [{ leader: 'A', follower: 'B' }],
+    };
+    const session = new GameSession(level);
+    // A 是 ◇ 开关：A 离场开门后 B 才能过 → 接力成功并切换机关
+    const result = session.commitRelay('A');
+    expect(result.ok).toBe(true);
+    expect(session.state.remaining).toEqual([]);
+    expect(session.state.open.diamond).toBe(true);
+    expect(session.history).toHaveLength(1);
+    session.undo();
+    expect(session.state.remaining).toEqual(['A', 'B']);
+    expect(session.state.open.diamond).toBe(false);
+    expect(session.canUndo).toBe(false);
+  });
+
+  it('接力失败不进入历史', () => {
+    const level = {
+      ...SAMPLE_LEVEL,
+      id: 'relay-fail',
+      arrows: [
+        { id: 'A', head: { x: 0, y: 0 }, dir: 'right' as const, len: 1 as const },
+        { id: 'B', head: { x: 0, y: 1 }, dir: 'right' as const, len: 1 as const },
+      ],
+      mechanisms: [{ group: 'diamond' as const, initialOpen: false, gates: [{ x: 3, y: 1 }] }],
+      relays: [{ leader: 'A', follower: 'B' }],
+    };
+    const session = new GameSession(level);
+    const result = session.commitRelay('A');
+    expect(result.ok).toBe(false);
+    expect(session.canUndo).toBe(false);
+    expect(session.state.remaining).toEqual(['A', 'B']);
+  });
 });

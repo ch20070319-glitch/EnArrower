@@ -1,4 +1,4 @@
-import { cellKey, cellsOf, effectiveArrow, exitDistance, headDirOf } from '../core/rules';
+import { cellKey, cellsOf, effectiveArrow, exitDistance, headDirOf, relayOf } from '../core/rules';
 import { ArrowDef, Cell, DIR_VEC, GameState, GroupId, GROUP_SYMBOL, LevelDef } from '../core/types';
 
 const CELL = 100;
@@ -34,8 +34,10 @@ export class BoardView {
   private level: LevelDef;
   private arrowsLayer: SVGGElement;
   private gatesLayer: SVGGElement;
+  private relayLayer: SVGGElement;
   private arrowNodes = new Map<string, SVGGElement>();
   private gateNodes = new Map<string, SVGGElement>();
+  private relayNodes = new Map<string, SVGLineElement>();
   private cellNodes = new Map<string, SVGRectElement>();
   private timers = new Set<number>();
   private state: GameState | null = null;
@@ -88,8 +90,10 @@ export class BoardView {
     this.svg.appendChild(cellsLayer);
 
     this.gatesLayer = el('g');
+    this.relayLayer = el('g', { 'aria-hidden': 'true' });
     this.arrowsLayer = el('g');
     this.svg.appendChild(this.gatesLayer);
+    this.svg.appendChild(this.relayLayer);
     this.svg.appendChild(this.arrowsLayer);
     container.appendChild(this.svg);
   }
@@ -103,8 +107,10 @@ export class BoardView {
     this.state = state;
     this.arrowsLayer.innerHTML = '';
     this.gatesLayer.innerHTML = '';
+    this.relayLayer.innerHTML = '';
     this.arrowNodes.clear();
     this.gateNodes.clear();
+    this.relayNodes.clear();
 
     for (const m of this.level.mechanisms) {
       const open = !!state.open[m.group];
@@ -119,6 +125,22 @@ export class BoardView {
       const node = this.buildArrow(arrow, state);
       this.arrowsLayer.appendChild(node);
       this.arrowNodes.set(id, node);
+    }
+    for (const r of this.level.relays ?? []) {
+      if (!state.remaining.includes(r.leader) || !state.remaining.includes(r.follower)) continue;
+      const a = this.level.arrows.find((x) => x.id === r.leader)!;
+      const b = this.level.arrows.find((x) => x.id === r.follower)!;
+      const line = el('line', {
+        class: 'relay-link',
+        x1: a.head.x * CELL + CELL / 2,
+        y1: a.head.y * CELL + CELL / 2,
+        x2: b.head.x * CELL + CELL / 2,
+        y2: b.head.y * CELL + CELL / 2,
+        'data-leader': r.leader,
+        'data-follower': r.follower,
+      });
+      this.relayLayer.appendChild(line);
+      this.relayNodes.set(r.leader, line);
     }
     if (this.selectedId && this.arrowNodes.has(this.selectedId)) {
       this.arrowNode(this.selectedId)?.classList.add('is-selected');
@@ -151,17 +173,23 @@ export class BoardView {
     const cx = arrow.head.x * CELL + CELL / 2;
     const cy = arrow.head.y * CELL + CELL / 2;
     const kind = def.reversible ? 'reversible' : def.group ? def.group : 'normal';
+    const relay = relayOf(this.level, def.id);
+    const relayNote = relay
+      ? relay.leader === def.id
+        ? `，接力领头（带 ${relay.follower} 一起离场）`
+        : `，接力跟随（点 ${relay.leader} 启动）`
+      : '';
     const mover = el('g', { class: 'arrow-mover', 'data-arrow-id': arrow.id });
     const node = el('g', {
       class: `arrow arrow--${kind}`,
       transform: `translate(${cx},${cy}) rotate(${DIR_DEG[arrow.dir]})`,
       tabindex: '0',
       role: 'button',
-      'aria-label': def.reversible
+      'aria-label': (def.reversible
         ? `可调头箭头，当前向${DIR_NAME[arrow.dir]}，长度 ${arrow.len}，点击选中后可调头或发射`
         : `箭头，向${DIR_NAME[arrow.dir]}，长度 ${arrow.len}${
             arrow.group ? `，${GROUP_SYMBOL[arrow.group]} 开关` : ''
-          }，头部在第 ${arrow.head.x + 1} 列第 ${arrow.head.y + 1} 行`,
+          }，头部在第 ${arrow.head.x + 1} 列第 ${arrow.head.y + 1} 行`) + relayNote,
     });
     const shape = el('g', { class: 'arrow-shape' });
     const back = (arrow.len - 1) * CELL;
@@ -288,6 +316,16 @@ export class BoardView {
     if (!node) return;
     node.classList.add('is-hint');
     this.later(() => node.classList.remove('is-hint'), 3100);
+  }
+
+  /** 点击接力跟随箭：只高亮领头与虚线连接，不移动。 */
+  flashRelay(leaderId: string): void {
+    this.flashHint(leaderId);
+    const link = this.relayNodes.get(leaderId);
+    if (link) {
+      link.classList.add('is-active');
+      this.later(() => link.classList.remove('is-active'), 1300);
+    }
   }
 
   preview(group: GroupId, willOpen: boolean, sourceId?: string): void {
