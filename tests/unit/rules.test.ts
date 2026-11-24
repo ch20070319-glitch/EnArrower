@@ -15,23 +15,23 @@ function miniLevel(arrows: ArrowDef[], mechanisms: LevelDef['mechanisms'] = [], 
 }
 
 describe('占用格推导', () => {
-  it('箭身从头部沿朝向反方向延伸', () => {
+  it('箭身坐标串统一尾→头，直箭头从头部沿朝向反方向延伸', () => {
     expect(cellsOf({ id: 'x', head: { x: 3, y: 1 }, dir: 'right', len: 3 })).toEqual([
-      { x: 3, y: 1 },
-      { x: 2, y: 1 },
       { x: 1, y: 1 },
+      { x: 2, y: 1 },
+      { x: 3, y: 1 },
     ]);
     expect(cellsOf({ id: 'x', head: { x: 1, y: 1 }, dir: 'up', len: 2 })).toEqual([
-      { x: 1, y: 1 },
       { x: 1, y: 2 },
+      { x: 1, y: 1 },
     ]);
     expect(cellsOf({ id: 'x', head: { x: 1, y: 1 }, dir: 'left', len: 2 })).toEqual([
-      { x: 1, y: 1 },
       { x: 2, y: 1 },
+      { x: 1, y: 1 },
     ]);
     expect(cellsOf({ id: 'x', head: { x: 1, y: 1 }, dir: 'down', len: 2 })).toEqual([
-      { x: 1, y: 1 },
       { x: 1, y: 0 },
+      { x: 1, y: 1 },
     ]);
   });
 });

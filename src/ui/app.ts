@@ -158,6 +158,7 @@ export class App {
 
     $('game-title').textContent = `第 ${level.index} 关 · ${level.name}`;
     $('game-goal').textContent = level.goal;
+    $('board-wrap').classList.toggle('board-wrap--tall', level.height > level.width);
     this.board = new BoardView($('board-wrap'), level);
     this.board.setCallbacks({
       onActivate: (id) => this.attemptMove(id),

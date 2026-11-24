@@ -12,6 +12,8 @@ export interface ArrowDef {
   dir: Dir;
   len: 1 | 2 | 3;
   group?: GroupId;
+  /** 折线箭身：尾→头的相邻不重复坐标串（第一轮最多一个直角弯）。缺省时按 head/dir/len 推导直箭身。 */
+  path?: Cell[];
 }
 
 export interface MechanismDef {

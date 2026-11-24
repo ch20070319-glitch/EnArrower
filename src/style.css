@@ -336,9 +336,14 @@ body {
   box-shadow: var(--shadow-md);
   padding: clamp(8px, 2vw, 14px);
 }
+/* 大棋盘（高>宽）：桌面按可用高度收敛保证整盘可见；手机竖屏保持满宽、格子≥44px，页面自然滚动。 */
+.board-wrap--tall {
+  width: min(100%, 640px, max(280px, calc((100dvh - 250px) * 0.6667)));
+}
 .board-svg { display: block; width: 100%; height: auto; overflow: visible; border-radius: 14px; }
 
 .board-cell { fill: var(--cell); opacity: 0.55; }
+.board-cell.is-ray { fill: var(--teal); opacity: 0.28; }
 
 /* 闸门 */
 .gate rect {
@@ -399,6 +404,12 @@ body {
 .arrow--diamond .arrow-head { stroke: var(--amber-deep); }
 .arrow--circle .arrow-head { stroke: var(--violet-deep); }
 .arrow-sheen { fill: #ffffff; opacity: 0.22; pointer-events: none; }
+/* 折线箭身：圆角描线路径 + 中心高光绳芯 */
+.arrow-body-poly { fill: none; stroke-width: 20; stroke-linecap: round; stroke-linejoin: round; }
+.arrow-sheen-poly { fill: none; stroke: #ffffff; opacity: 0.22; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.arrow--normal .arrow-body-poly { stroke: var(--teal); }
+.arrow--diamond .arrow-body-poly { stroke: var(--amber); }
+.arrow--circle .arrow-body-poly { stroke: var(--violet); }
 .arrow-badge { fill: #fdfbf4; opacity: 0.96; }
 .arrow-badge-sym { font-size: 14px; font-weight: 800; text-anchor: middle; pointer-events: none; }
 .arrow--diamond .arrow-badge-sym { fill: var(--amber-deep); }
@@ -536,6 +547,8 @@ html { scrollbar-color: #cfc5ac var(--paper-deep); scrollbar-width: thin; }
   .level-grid { grid-template-columns: repeat(2, 1fr); }
   .home-actions { width: 100%; }
   .home-actions .btn { flex: 1 1 auto; }
+  /* 大棋盘窄屏近乎全宽出血：8 列在 360px 下仍 ≥44px 触控格。 */
+  .board-wrap--tall { flex-shrink: 0; width: calc(100vw - 2px); padding: 1px; border-radius: 12px; }
 }
 @media (min-width: 700px) {
   .screen--game .subbar { margin-bottom: 24px; }

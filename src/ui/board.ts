@@ -1,5 +1,5 @@
-import { cellKey, exitDistance } from '../core/rules';
-import { ArrowDef, DIR_VEC, GameState, GroupId, GROUP_SYMBOL, LevelDef } from '../core/types';
+import { cellKey, cellsOf, exitDistance, headDirOf } from '../core/rules';
+import { ArrowDef, Cell, DIR_VEC, GameState, GroupId, GROUP_SYMBOL, LevelDef } from '../core/types';
 
 const CELL = 100;
 const DIR_DEG: Record<string, number> = { right: 0, down: 90, left: 180, up: 270 };
@@ -14,6 +14,10 @@ function el<K extends keyof SVGElementTagNameMap>(
   const node = document.createElementNS(SVG_NS, tag);
   for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, String(v));
   return node;
+}
+
+function pathD(pts: { x: number; y: number }[]): string {
+  return pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
 }
 
 export interface BoardCallbacks {
@@ -32,6 +36,7 @@ export class BoardView {
   private gatesLayer: SVGGElement;
   private arrowNodes = new Map<string, SVGGElement>();
   private gateNodes = new Map<string, SVGGElement>();
+  private cellNodes = new Map<string, SVGRectElement>();
   private timers = new Set<number>();
   private callbacks: BoardCallbacks = { onActivate: () => {}, onHover: () => {} };
 
@@ -63,16 +68,16 @@ export class BoardView {
     const cellsLayer = el('g', { 'aria-hidden': 'true' });
     for (let y = 0; y < level.height; y++) {
       for (let x = 0; x < level.width; x++) {
-        cellsLayer.appendChild(
-          el('rect', {
-            class: 'board-cell',
-            x: x * CELL + 5,
-            y: y * CELL + 5,
-            width: CELL - 10,
-            height: CELL - 10,
-            rx: 14,
-          }),
-        );
+        const rect = el('rect', {
+          class: 'board-cell',
+          x: x * CELL + 5,
+          y: y * CELL + 5,
+          width: CELL - 10,
+          height: CELL - 10,
+          rx: 14,
+        });
+        this.cellNodes.set(`${x},${y}`, rect);
+        cellsLayer.appendChild(rect);
       }
     }
     this.svg.appendChild(cellsLayer);
@@ -132,6 +137,7 @@ export class BoardView {
   }
 
   private buildArrow(arrow: ArrowDef): SVGGElement {
+    if (arrow.path) return this.buildPolyArrow(arrow);
     const cx = arrow.head.x * CELL + CELL / 2;
     const cy = arrow.head.y * CELL + CELL / 2;
     const kind = arrow.group ? arrow.group : 'normal';
@@ -166,19 +172,66 @@ export class BoardView {
     }
     node.appendChild(shape);
     mover.appendChild(node);
+    this.bindArrowEvents(node, arrow.id);
+    return mover;
+  }
 
-    node.addEventListener('click', () => this.callbacks.onActivate(arrow.id));
+  /** 折线箭头：箭身为尾→头的圆角描线路径，箭头沿末段朝向；命中区为整格并集。 */
+  private buildPolyArrow(arrow: ArrowDef): SVGGElement {
+    const cells = cellsOf(arrow);
+    const pts = cells.map((c) => ({ x: c.x * CELL + CELL / 2, y: c.y * CELL + CELL / 2 }));
+    const kind = arrow.group ? arrow.group : 'normal';
+    const mover = el('g', { class: 'arrow-mover', 'data-arrow-id': arrow.id });
+    const node = el('g', {
+      class: `arrow arrow--${kind} arrow--poly`,
+      tabindex: '0',
+      role: 'button',
+      'aria-label': `折线箭头，出口向${DIR_NAME[headDirOf(arrow)]}，箭身 ${cells.length} 格${
+        arrow.group ? `，${GROUP_SYMBOL[arrow.group]} 开关` : ''
+      }，头部在第 ${arrow.head.x + 1} 列第 ${arrow.head.y + 1} 行`,
+    });
+    const shape = el('g', { class: 'arrow-shape' });
+    for (const c of cells) {
+      shape.appendChild(
+        el('rect', { class: 'arrow-hit', x: c.x * CELL, y: c.y * CELL, width: CELL, height: CELL }),
+      );
+    }
+    const d = pathD(pts);
+    shape.appendChild(el('path', { class: 'arrow-body-poly', d }));
+    shape.appendChild(el('path', { class: 'arrow-sheen-poly', d }));
+    const head = pts[pts.length - 1];
+    shape.appendChild(
+      el('path', {
+        class: 'arrow-head',
+        d: 'M 40 0 L -8 -22 L -8 22 Z',
+        transform: `translate(${head.x},${head.y}) rotate(${DIR_DEG[headDirOf(arrow)]})`,
+      }),
+    );
+    if (arrow.group) {
+      const mid = pts[Math.floor((pts.length - 1) / 2)];
+      shape.appendChild(el('circle', { class: 'arrow-badge', cx: mid.x, cy: mid.y, r: 10 }));
+      const sym = el('text', { class: 'arrow-badge-sym', x: mid.x, y: mid.y + 5 });
+      sym.textContent = GROUP_SYMBOL[arrow.group];
+      shape.appendChild(sym);
+    }
+    node.appendChild(shape);
+    mover.appendChild(node);
+    this.bindArrowEvents(node, arrow.id);
+    return mover;
+  }
+
+  private bindArrowEvents(node: SVGGElement, id: string): void {
+    node.addEventListener('click', () => this.callbacks.onActivate(id));
     node.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        this.callbacks.onActivate(arrow.id);
+        this.callbacks.onActivate(id);
       }
     });
-    node.addEventListener('pointerenter', () => this.callbacks.onHover(arrow.id));
+    node.addEventListener('pointerenter', () => this.callbacks.onHover(id));
     node.addEventListener('pointerleave', () => this.callbacks.onHover(null));
-    node.addEventListener('focus', () => this.callbacks.onHover(arrow.id));
+    node.addEventListener('focus', () => this.callbacks.onHover(id));
     node.addEventListener('blur', () => this.callbacks.onHover(null));
-    return mover;
   }
 
   arrowNode(id: string): SVGGElement | null {
@@ -252,6 +305,7 @@ export class BoardView {
     const arrow = this.level.arrows.find((a) => a.id === arrowId)!;
     const mover = this.arrowNodes.get(arrowId);
     if (!mover) return Promise.resolve();
+    if (arrow.path) return this.animatePolyExit(arrow, mover, reducedMotion);
     mover.querySelector('.arrow')?.classList.add('is-exiting');
     const v = DIR_VEC[arrow.dir];
     const dist = (exitDistance(this.level, arrow) + 0.25) * CELL;
@@ -284,6 +338,95 @@ export class BoardView {
       };
       raf = requestAnimationFrame(tick);
     });
+  }
+
+  /**
+   * 折线绳随离场：每个箭身格沿「自身→前一段→…→头部出口射线」的路线依次跟出，
+   * 弯折处逐渐展开；路线与 checkMove/sweptCells 完全一致。完成守卫与兜底定时器同直箭头。
+   */
+  private animatePolyExit(
+    arrow: ArrowDef,
+    mover: SVGGElement,
+    reducedMotion: boolean,
+  ): Promise<void> {
+    const cells = cellsOf(arrow);
+    const v = DIR_VEC[headDirOf(arrow)];
+    const route = cells.map((c) => ({ x: c.x * CELL + CELL / 2, y: c.y * CELL + CELL / 2 }));
+    const head = route[route.length - 1];
+    const ray = exitDistance(this.level, arrow) - (cells.length - 1);
+    for (let i = 1; i <= ray + 2; i++) {
+      route.push({ x: head.x + v.x * CELL * i, y: head.y + v.y * CELL * i });
+    }
+    const pointAt = (t: number): { x: number; y: number } => {
+      const idx = Math.max(0, Math.min(route.length - 2, Math.floor(t)));
+      const f = Math.max(0, Math.min(1, t - idx));
+      const a = route[idx];
+      const b = route[idx + 1];
+      return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
+    };
+    const node = mover.querySelector<SVGGElement>('.arrow')!;
+    node.classList.add('is-exiting');
+    const body = node.querySelector<SVGPathElement>('.arrow-body-poly')!;
+    const sheen = node.querySelector<SVGPathElement>('.arrow-sheen-poly')!;
+    const headNode = node.querySelector<SVGPathElement>('.arrow-head')!;
+    const badge = node.querySelector<SVGCircleElement>('.arrow-badge');
+    const badgeSym = node.querySelector<SVGTextElement>('.arrow-badge-sym');
+    const midIdx = Math.floor((cells.length - 1) / 2);
+    const dist = exitDistance(this.level, arrow) + 0.25;
+    const duration = reducedMotion ? 40 : Math.min(450, Math.max(250, 230 + dist * CELL * 0.24));
+    const draw = (s: number): void => {
+      const pts = cells.map((_, i) => pointAt(i + s));
+      const d = pathD(pts);
+      body.setAttribute('d', d);
+      sheen.setAttribute('d', d);
+      const hp = pts[pts.length - 1];
+      const ahead = pointAt(cells.length - 1 + s + 0.01);
+      const deg = (Math.atan2(ahead.y - hp.y, ahead.x - hp.x) * 180) / Math.PI;
+      headNode.setAttribute('transform', `translate(${hp.x},${hp.y}) rotate(${deg})`);
+      if (badge && badgeSym) {
+        const mp = pts[midIdx];
+        badge.setAttribute('cx', String(mp.x));
+        badge.setAttribute('cy', String(mp.y));
+        badgeSym.setAttribute('x', String(mp.x));
+        badgeSym.setAttribute('y', String(mp.y + 5));
+      }
+    };
+    return new Promise((resolve) => {
+      let finished = false;
+      let raf = 0;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        cancelAnimationFrame(raf);
+        window.clearTimeout(safety);
+        draw(dist);
+        resolve();
+      };
+      const safety = window.setTimeout(finish, duration + 300);
+      if (reducedMotion) {
+        finish();
+        return;
+      }
+      const start = performance.now();
+      const tick = (now: number) => {
+        if (finished) return;
+        const t = Math.min(1, (now - start) / duration);
+        draw(dist * (1 - Math.pow(1 - t, 3)));
+        if (t < 1) raf = requestAnimationFrame(tick);
+        else finish();
+      };
+      raf = requestAnimationFrame(tick);
+    });
+  }
+
+  /** 出口方向预览：高亮路线经过的格子（与碰撞判定同一条射线）。 */
+  previewRay(cells: Cell[]): void {
+    this.clearRay();
+    for (const c of cells) this.cellNodes.get(cellKey(c))?.classList.add('is-ray');
+  }
+
+  clearRay(): void {
+    for (const node of this.cellNodes.values()) node.classList.remove('is-ray');
   }
 
   destroy(): void {

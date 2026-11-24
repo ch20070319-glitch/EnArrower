@@ -1,6 +1,7 @@
 import {
   ArrowDef,
   Cell,
+  Dir,
   DIR_VEC,
   GameState,
   GroupId,
@@ -9,13 +10,43 @@ import {
   MoveResult,
 } from './types';
 
+/** 箭身坐标串统一尾→头；直箭头由 head/dir/len 反推，折线直接采用 path。 */
 export function cellsOf(arrow: ArrowDef): Cell[] {
+  if (arrow.path) return arrow.path.map((c) => ({ ...c }));
   const v = DIR_VEC[arrow.dir];
   const cells: Cell[] = [];
-  for (let i = 0; i < arrow.len; i++) {
+  for (let i = arrow.len - 1; i >= 0; i--) {
     cells.push({ x: arrow.head.x - v.x * i, y: arrow.head.y - v.y * i });
   }
   return cells;
+}
+
+/** 出口朝向 = 箭身最后一段的方向；直箭头即 def.dir。 */
+export function headDirOf(arrow: ArrowDef): Dir {
+  if (!arrow.path || arrow.path.length < 2) return arrow.dir;
+  const a = arrow.path[arrow.path.length - 2];
+  const b = arrow.path[arrow.path.length - 1];
+  if (b.x > a.x) return 'right';
+  if (b.x < a.x) return 'left';
+  if (b.y > a.y) return 'down';
+  return 'up';
+}
+
+/**
+ * 绳随离场所经过的全部格：自身箭身 + 头部出口射线（棋盘内部分）。
+ * 折线箭身依次沿前一段路线跟出，新占格恰为出口射线，故碰撞/预览/动画共用此路线。
+ */
+export function sweptCells(level: LevelDef, arrow: ArrowDef): Cell[] {
+  const cells = cellsOf(arrow);
+  const head = cells[cells.length - 1];
+  const v = DIR_VEC[headDirOf(arrow)];
+  const out: Cell[] = [...cells];
+  let c = { x: head.x + v.x, y: head.y + v.y };
+  while (inBoard(level, c)) {
+    out.push({ ...c });
+    c = { x: c.x + v.x, y: c.y + v.y };
+  }
+  return out;
 }
 
 export function cellKey(c: Cell): string {
@@ -64,14 +95,16 @@ export function gateMap(level: LevelDef): Map<string, GroupId> {
  */
 export function checkMove(level: LevelDef, state: GameState, arrowId: string): MoveCheck {
   const arrow = arrowById(level, arrowId);
-  const v = DIR_VEC[arrow.dir];
+  const cells = cellsOf(arrow);
+  const head = cells[cells.length - 1];
+  const v = DIR_VEC[headDirOf(arrow)];
   const occupied = new Map<string, string>();
   for (const id of state.remaining) {
     if (id === arrowId) continue;
     for (const c of cellsOf(arrowById(level, id))) occupied.set(cellKey(c), id);
   }
   const gates = gateMap(level);
-  let c: Cell = { x: arrow.head.x + v.x, y: arrow.head.y + v.y };
+  let c: Cell = { x: head.x + v.x, y: head.y + v.y };
   while (inBoard(level, c)) {
     const key = cellKey(c);
     const blockerArrow = occupied.get(key);
@@ -112,17 +145,20 @@ export function legalMoves(level: LevelDef, state: GameState): string[] {
   return state.remaining.filter((id) => checkMove(level, state, id).ok);
 }
 
-/** 尾部完全出界所需的平移格数，供动画使用（规则无关，仅几何）。 */
+/** 尾部完全出界所需的绳随路线格数，供动画使用（规则无关，仅几何）。 */
 export function exitDistance(level: LevelDef, arrow: ArrowDef): number {
-  const v = DIR_VEC[arrow.dir];
-  const tail = {
-    x: arrow.head.x - v.x * (arrow.len - 1),
-    y: arrow.head.y - v.y * (arrow.len - 1),
-  };
-  if (arrow.dir === 'right') return level.width - tail.x;
-  if (arrow.dir === 'left') return tail.x + 1;
-  if (arrow.dir === 'down') return level.height - tail.y;
-  return tail.y + 1;
+  const cells = cellsOf(arrow);
+  const head = cells[cells.length - 1];
+  const dir = headDirOf(arrow);
+  const ray =
+    dir === 'right'
+      ? level.width - head.x
+      : dir === 'left'
+        ? head.x + 1
+        : dir === 'down'
+          ? level.height - head.y
+          : head.y + 1;
+  return ray + (cells.length - 1);
 }
 
 export function stateKey(state: GameState): string {

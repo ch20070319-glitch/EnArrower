@@ -1,21 +1,21 @@
 import { expect, test, Page } from '@playwright/test';
+import { LEVELS } from '../../src/levels/levels';
 
 const SAVE_KEY = 'enarrower.save';
 
 async function fresh(page: Page, unlockAll = false) {
   await page.goto('/');
   await page.evaluate(
-    ({ key, unlockAll }) => {
+    ({ key, unlockAll, ids }) => {
       localStorage.removeItem(key);
       if (unlockAll) {
-        const ids = Array.from({ length: 18 }, (_, i) => `l${String(i + 1).padStart(2, '0')}`);
         localStorage.setItem(
           key,
           JSON.stringify({ schemaVersion: 1, completed: [], unlocked: ids, current: null }),
         );
       }
     },
-    { key: SAVE_KEY, unlockAll },
+    { key: SAVE_KEY, unlockAll, ids: LEVELS.map((l) => l.id) },
   );
   await page.reload();
 }
@@ -75,6 +75,47 @@ async function clickArrow(page: Page, id: string) {
     node.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   }, id);
   await page.waitForTimeout(700);
+}
+
+/** 折线离场采样：逐帧记录箭身路径 d，证明弯折逐渐展开而非整支瞬移。 */
+async function samplePolyExit(page: Page, id: string) {
+  return page.evaluate(async (arrowId) => {
+    const mover = document.querySelector<SVGGElement>(`.arrow-mover[data-arrow-id="${arrowId}"]`);
+    if (!mover) throw new Error('arrow not found: ' + arrowId);
+    const body = mover.querySelector<SVGPathElement>('.arrow-body-poly')!;
+    const ds: string[] = [];
+    let removed = false;
+    mover.querySelector('.arrow')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const start = performance.now();
+    await new Promise<void>((resolve) => {
+      const tick = () => {
+        if (!mover.isConnected) {
+          removed = true;
+          resolve();
+          return;
+        }
+        ds.push(body.getAttribute('d') || '');
+        if (performance.now() - start > 1500) {
+          resolve();
+          return;
+        }
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    const pointCount = (d: string) => d.split('L').length;
+    return {
+      removed,
+      distinct: new Set(ds).size,
+      firstPoints: pointCount(ds[0] || ''),
+      midBent: ds.some((d) => {
+        const pts = d.split(/[ML] /).slice(1).map((p) => p.split(' ').map(Number));
+        if (pts.length < 3) return false;
+        const [a, b, c] = pts;
+        return (b[0] - a[0]) * (c[1] - b[1]) !== (b[1] - a[1]) * (c[0] - b[0]);
+      }),
+    };
+  }, id);
 }
 
 test.describe('入口与构建', () => {
@@ -410,14 +451,75 @@ test.describe('进阶机关关卡（13-18）', () => {
     expect(save.unlocked).toContain('l18');
   });
 
-  test('AC23 第18关（末关）通关后无下一关按钮', async ({ page }) => {
+  test('AC23 第18关通关后下一关指向折线教学关', async ({ page }) => {
     await fresh(page, true);
     await openLevel(page, 18);
     for (const id of ['f', 'sd', 'a', 'b', 'sc', 'c', 'g', 'd', 'e']) await clickArrow(page, id);
     await expect(page.locator('#win-overlay')).toBeVisible();
-    await expect(page.locator('#btn-next')).toBeHidden();
+    await expect(page.locator('#btn-next')).toBeVisible();
+    await expect(page.locator('#btn-next')).toContainText('折弯初识');
     const save = await readSave(page);
     expect(save.completed).toContain('l18');
+    expect(save.current.state.remaining).toEqual([]);
+  });
+});
+
+test.describe('大棋盘与折线箭头（19-20）', () => {
+  test('AC24 折线离场绳随动画：路径逐帧展开、尾部出界后移除', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 19);
+    const { removed, distinct, firstPoints, midBent } = await samplePolyExit(page, 'k');
+    expect(removed).toBe(true);
+    expect(distinct).toBeGreaterThan(5);
+    expect(firstPoints).toBe(5);
+    expect(midBent).toBe(true);
+    const save = await readSave(page);
+    expect(save.current.state.remaining).not.toContain('k');
+    expect(save.current.history.length).toBe(1);
+  });
+
+  test('AC25 折线箭身挡路：d 被 k 阻挡且状态不变', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 19);
+    const before = await readSave(page);
+    await page.evaluate(() => {
+      const node = document.querySelector<SVGGElement>('.arrow-mover[data-arrow-id="d"] .arrow')!;
+      node.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    await page.waitForTimeout(300);
+    const after = await readSave(page);
+    expect(after.current.state.remaining).toEqual(before.current.state.remaining);
+    expect(after.current.history.length).toBe(0);
+    await expect(page.locator('#status')).toContainText('被挡住');
+    await expect(page.locator('.arrow-mover[data-arrow-id="k"] .arrow.is-blocker')).toHaveCount(1);
+  });
+
+  test('AC26 大棋盘 360px 竖屏：格子≥44px、无横溢、可实际操作', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 780 });
+    await fresh(page, true);
+    await openLevel(page, 20);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
+    const board = await page.locator('.board-svg').boundingBox();
+    expect(board!.width / 8).toBeGreaterThanOrEqual(44);
+    await clickArrow(page, 'k1');
+    await clickArrow(page, 's');
+    const save = await readSave(page);
+    expect(save.current.state.remaining).not.toContain('k1');
+    expect(save.current.state.remaining).not.toContain('s');
+    expect(save.current.state.open.diamond).toBe(true);
+  });
+
+  test('AC27 第20关（末关）大棋盘完整通关且无下一关按钮', async ({ page }) => {
+    await fresh(page, true);
+    await openLevel(page, 20);
+    for (const id of ['k1', 'k2', 's', 'a', 'b', 'c', 'd', 'e', 'f']) await clickArrow(page, id);
+    await expect(page.locator('#win-overlay')).toBeVisible();
+    await expect(page.locator('#btn-next')).toBeHidden();
+    const save = await readSave(page);
+    expect(save.completed).toContain('l20');
     expect(save.current.state.remaining).toEqual([]);
   });
 });
