@@ -78,7 +78,7 @@ npm run review:deepseek
 ## Gitee 提交准备清单
 - [x] 源码 + 27 关 + 锁文件（package-lock.json 已提交）
 - [x] .gitignore：node_modules/、dist/、.env*（保留 .env.example）、/test-results/、/playwright-report/、evidence/api/raw/
-- [x] 阶段提交：2e3811f（骨架）→ 9a06a0d（引擎+81 单元测试）→ 97cad4a（UI+60 浏览器测试）→ 02372b6（文档+66 浏览器测试）→ 0acfdb5（7×7+视觉精修）→ 8745f7e（l13–l18）→ 第二轮 3f1891c / c06cb85 / f8a3220 / 8bd09e4 / ed7fc27 / 721f9e9（l19–l27 新机制，哈希见 docs/evidence-index.md）
+- [x] 阶段提交：2e3811f（骨架）→ 9a06a0d（引擎+81 单元测试）→ 97cad4a（UI+60 浏览器测试）→ 02372b6（文档+66 浏览器测试）→ 0acfdb5（7×7+视觉精修）→ 8745f7e（l13–l18）→ 第二轮 3f1891c / c06cb85 / f8a3220 / 8bd09e4 / ed7fc27 / 721f9e9（l19–l27 新机制）→ 第三轮 d22c3a6（徽记调头+铺满加密+上限放宽，哈希见 docs/evidence-index.md）
 - [x] README / 测试证据 / 课程文档齐备
 - [ ] 创建 Gitee 仓库并配置推送授权（用户操作）
 - [ ] `git remote add origin <仓库地址>` → `git push -u origin main`（用户操作）
