@@ -97,6 +97,9 @@ make-icon 脚本、.gitignore /release/；README 桌面版小节与 requirements
 GitHub 推送（2026-11-25，用户过目 README 并确认后执行）：origin=https://github.com/ch20070319-glitch/EnArrower ，
 `git push -u origin main` 成功，远端 main 与本地一致（ls-remote 复核；首次推送 head=515b1e0，本记录提交随后同步推送）；exe 未入库（release/ 忽略）。
 Gitee 仓库仍为外部待办，未推送。
+GitHub Releases（2026-11-25，用户指令「把exe挂到GitHub Releases」）：tag v1.0.0 推送；REST API 建 release（id 458044673，非 draft/非 prerelease），
+上传附件 EnArrower-1.0.0-portable.exe（asset id 791353340，state=uploaded，110,485,570 字节）；
+下载链接本机 HTTP 200 可达，完整回读 sha256 与本地 exe 一致（8325e4e6…338e）。凭据经 git credential fill 取自本机凭据管理器，仅 shell 变量流转，未入日志/聊天/Git。
 
 ## 待用户补充
 - 完整指令截图 / 对话导出（docs/prompts 已存文本，截图待补）。

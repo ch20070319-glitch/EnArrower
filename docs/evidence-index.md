@@ -76,3 +76,8 @@
   推送前 README 全文经用户过目并确认「按现状提交推送」；首次推送 head=515b1e002da8d2f3dceabe978ee778889a2df97c，
   与本地 HEAD 一致（git ls-remote 复核）；本记录提交随后同步推送，远端始终与本地 main 一致。
 - 入库内容：源码/27 关/锁文件/docs/evidence（含截图 19/20 与 desktop.txt）；不含 exe（release/ 忽略）、不含 .env 与密钥（跟踪文件仅 .env.example 空模板）。
+- GitHub Releases（同日，用户指令）：tag `v1.0.0`；release id 458044673（draft=false、prerelease=false）；
+  附件 `EnArrower-1.0.0-portable.exe`（asset id 791353340，state=uploaded，110,485,570 字节），
+  下载地址 https://github.com/ch20070319-glitch/EnArrower/releases/download/v1.0.0/EnArrower-1.0.0-portable.exe ；
+  本机 HEAD 请求 HTTP 200，完整下载回读 sha256=8325e4e61202fa8a46ac70b0df99e43514eb18587dc147290a09d3e8e17c338e，与本地 exe 逐字节哈希一致。
+  exe 仍以 Release 附件分发，不进 Git 树。

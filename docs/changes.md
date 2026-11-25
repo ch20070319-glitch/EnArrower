@@ -129,4 +129,6 @@
 - 同期回归：166 单元 / 28 重放（合计 19.3ms、最慢 l10 3.6ms）/ 126 浏览器 / build 全通过。
 - GitHub 上传：用户过目 README 全文并确认「按现状提交推送」后，`git push -u origin main` 推送全历史至
   https://github.com/ch20070319-glitch/EnArrower （远端与本地 main 一致，ls-remote 复核）；推送前复核跟踪文件仅 .env.example 含 env 字样、无密钥。
+- GitHub Releases：tag v1.0.0；release id 458044673 挂附件 EnArrower-1.0.0-portable.exe（110,485,570 字节，state=uploaded）；
+  下载 URL 本机可达且完整回读 sha256 与本地一致；release 说明含玩法、存档位置、未签名 SmartScreen 提示与 sha256。
 - 本轮不做最终报告与整体收尾（用户指令：待游戏内容定稿后再做）。
