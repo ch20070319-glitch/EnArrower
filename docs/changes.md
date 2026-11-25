@@ -132,3 +132,14 @@
 - GitHub Releases：tag v1.0.0；release id 458044673 挂附件 EnArrower-1.0.0-portable.exe（110,485,570 字节，state=uploaded）；
   下载 URL 本机可达且完整回读 sha256 与本地一致；release 说明含玩法、存档位置、未签名 SmartScreen 提示与 sha256。
 - 本轮不做最终报告与整体收尾（用户指令：待游戏内容定稿后再做）。
+
+## 第五轮修改（2026-11-25 用户指令：Qoder Sites 公网部署）
+
+### 阶段 L：Sites 静态发布 + 公网实测
+- 无源码改动：复用第四轮已验证的 dist/（index.html + assets + favicon.svg，无 sourcemap/密钥）作为 webDirectory。
+- Sites 链：prepare_site（action cda2e78d…，slug enarrower，spa=false）→ 状态 canPublish=true → publish_site → published=true；
+  站点 https://enarrower-tt60ydf4j2q.qoder.zone ；按用户「公网」要求 update_access_policy 改 public。
+- 描述符首次 pending 未落盘 → 同 action 同输入重试 prepare 恢复（descriptorStatus=written），未重复发布。
+- 公网实测：内嵌浏览器加载/进入第 1 关/点箭身发射/存档更新/无跨域资源；Playwright 直连公网截屏 21 目检；sites.txt 记录。
+- 论坛发布（赛题截图后半句）本次未要求、未执行。
+- 本轮不做最终报告与整体收尾（用户指令：待游戏内容定稿后再做）。

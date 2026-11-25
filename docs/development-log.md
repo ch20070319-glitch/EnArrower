@@ -107,3 +107,10 @@ GitHub Releases（2026-11-25，用户指令「把exe挂到GitHub Releases」）�
 - DeepSeek 密钥配置后的真实调用记录。
 - Gitee 仓库创建、授权与最终 commit/tag。
 - 学号、姓名、个人总结。
+## 第五轮修改（2026-11-25 用户指令；阶段 L）
+目标：完成 Qoder Sites 公网部署（赛题要求的前半句；论坛发布本次未要求）。
+工作：无源码改动；dist/ 静态产物 prepare→publish→public；描述符恢复重试；公网浏览器实测与截屏 21。
+检查：prepare 首返 descriptorStatus=pending → 状态读取 ready/canPublish=true → publish 成功 committed=true；
+内嵌浏览器截屏视口不可见（非站点缺陷）→ Playwright 直连公网补截屏目检；实测后关闭临时页。
+记录：evidence/test-results/sites.txt、截图 21、requirements §12、changes 阶段 L、acceptance AC44。
+本轮不做最终报告与整体收尾。

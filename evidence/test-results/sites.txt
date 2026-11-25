@@ -1,0 +1,23 @@
+第五轮 Qoder Sites 公网部署实测
+日期：2026-11-25　宿主：Qoder Desktop（cn / prod）
+
+== 部署链（Sites MCP 实际返回）==
+prepare_site：actionId=cda2e78d-ca62-4e6c-91e3-db4d59446016，projectRoot=本仓库，webDirectory=dist（仅 index.html + assets + favicon.svg，无 sourcemap/密钥），spa=false，slug=enarrower。
+首次返回 descriptorStatus=pending；get_publish_status：artifactReady=true、dependenciesReady=true、canPublish=true、blockers=[]。
+publish_site：publishOperationId=01a21294-d4b5-72a0-9638-7b6bb89900b5；
+复查 get_publish_status：published=true、readiness=publication_completed、operation.state=succeeded、committed=true。
+站点：https://enarrower-tt60ydf4j2q.qoder.zone （siteId=01a21294-8f8b-7723-8b24-0ac9740975e9）。
+访问范围：初始 private；用户指令为「公网部署」，经 get_site_access 取 accessRef 后 update_access_policy(mode=public, confirmPublic=true) → policy.mode=public、auth_integration_status=not_required。
+描述符：首次未落盘，按恢复流程以同一 actionId 与完全相同输入重试 prepare_site → descriptorStatus=written，
+路径 .EnArrower · 箭头解谜.qoder.site（未重新打包、未重复发布）。
+
+== 公网浏览器实测 ==
+1) 内嵌浏览器 navigate 公网 URL 成功；evaluate 实测：首页文案正常；点 #btn-start 进入第 1 关（11 支 a..k）；
+   点箭身 a 发射后 localStorage enarrower.save 的 remaining=b..k；svg 节点 170；
+   performance resource 中无跨 origin 记录（resources=[]）。
+2) 内嵌浏览器截屏因视口不可见失败（NATIVE_BROWSER_VIEWPORT_UNAVAILABLE），改 Playwright chromium 直连公网 URL：
+   标题「EnArrower · 箭头解谜」，进入第 1 关满铺 11 支截图 evidence/screenshots/21-sites-public.png，目检正常（含 Made with Qoder 角标）。
+3) 实测后已关闭内嵌浏览器临时页。
+
+== 未验证 ==
+公网长期可用性/配额/带宽表现；他人网络环境访问；论坛发布（用户本次未要求，未执行）。

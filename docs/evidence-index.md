@@ -10,6 +10,7 @@
 | browser.txt | `npm run test:browser`（Playwright，42 用例 × desktop/mobile-390/mobile-360） | 126 passed |
 | build.txt | `npm run build`（tsc --noEmit && vite build） | 成功，无类型错误 |
 | desktop.txt | 第四轮 `npm run dist:win` + portable exe 冒烟（CDP 抓窗：启动/app:// 加载/发射存档/重启恢复/零外联） | exe 110,485,570 字节 sha256 8325e4e6…338e；冒烟各项实测通过；他机/SmartScreen 未验证 |
+| sites.txt | 第五轮 Qoder Sites 部署链返回 + 公网浏览器实测（加载/进入/发射/存档/无跨域资源） | published=true、public；公网 URL 实测通过；论坛发布未执行 |
 
 ## 截图（evidence/screenshots/；第三轮 18 张全重截并目检关键张，18 为第三轮新增）
 | 文件 | 内容 |
@@ -34,6 +35,7 @@
 | 18-game-l21-badge-turn.png | 第 21 关 ⇄ 尾格徽记直接点击调头后向左（不选中、底部无调头按钮） |
 | 19-desktop-exe.png | 第四轮：portable exe 窗口内第 1 关中途（a/b 已离场、9 支），CDP 抓窗目检 |
 | 20-desktop-exe-resume.png | 第四轮：exe 重启后继续存档恢复第 1 关 9 支中途局面 |
+| 21-sites-public.png | 第五轮：Playwright 直连 Qoder Sites 公网 URL，第 1 关满铺 11 支（含 Made with Qoder 角标），目检 |
 
 ## API 记录（evidence/api/）
 - review-2026-11-16T08-42-29-353Z.json：`npm run review:deepseek` 实跑记录，status=not_called（环境无 DEEPSEEK_API_KEY）。**真实 API 调用尚未发生**；配置密钥后重跑将生成脱敏请求/响应/usage 记录。raw/ 目录已 gitignore。
@@ -81,3 +83,11 @@
   下载地址 https://github.com/ch20070319-glitch/EnArrower/releases/download/v1.0.0/EnArrower-1.0.0-portable.exe ；
   本机 HEAD 请求 HTTP 200，完整下载回读 sha256=8325e4e61202fa8a46ac70b0df99e43514eb18587dc147290a09d3e8e17c338e，与本地 exe 逐字节哈希一致。
   exe 仍以 Release 附件分发，不进 Git 树。
+
+## Qoder Sites 公网部署（第五轮，2026-11-25 实际执行）
+- 公网地址：https://enarrower-tt60ydf4j2q.qoder.zone （访问范围 public，用户「公网部署」指令授权）。
+- actionId=cda2e78d-ca62-4e6c-91e3-db4d59446016；projectId=01a21294-8f87-79be-9c51-ffbd9e58845f；siteId=01a21294-8f8b-7723-8b24-0ac9740975e9；
+  publishOperationId=01a21294-d4b5-72a0-9638-7b6bb89900b5（succeeded/committed）；published=true、readiness=publication_completed。
+- 上传内容：dist/（index.html + assets/index-Dcgy5xMs.js + assets/index-DxgN4poB.css + favicon.svg），与第四轮 build 产物一致；无 Function/数据库/Secret。
+- 描述符：.EnArrower · 箭头解谜.qoder.site（首次 pending 未落盘，同 action 同输入重试 prepare 恢复 written；未重复发布）。
+- 公网实测见 sites.txt 与截图 21；内嵌浏览器截屏视口不可见改 Playwright 补截屏，已如实记录。
