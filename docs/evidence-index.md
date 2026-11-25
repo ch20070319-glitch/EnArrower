@@ -68,5 +68,11 @@
 - 用户聊天完整截图/导出。
 - 真机（手机浏览器）操作验证记录。
 - DeepSeek 真实调用后的采用/拒绝评估记录。
-- Gitee 仓库地址、最终 commit/tag。
+- Gitee 仓库地址、最终 commit/tag（GitHub 已推送，见下；Gitee 仍待办）。
 - 学号、姓名、个人总结。
+
+## 仓库推送（第四轮，2026-11-25 实际执行）
+- GitHub：https://github.com/ch20070319-glitch/EnArrower ；`git push -u origin main` 成功；
+  推送前 README 全文经用户过目并确认「按现状提交推送」；首次推送 head=515b1e002da8d2f3dceabe978ee778889a2df97c，
+  与本地 HEAD 一致（git ls-remote 复核）；本记录提交随后同步推送，远端始终与本地 main 一致。
+- 入库内容：源码/27 关/锁文件/docs/evidence（含截图 19/20 与 desktop.txt）；不含 exe（release/ 忽略）、不含 .env 与密钥（跟踪文件仅 .env.example 空模板）。

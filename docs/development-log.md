@@ -94,6 +94,9 @@ make-icon 脚本、.gitignore /release/；README 桌面版小节与 requirements
   验证发射/存档/重启恢复/零外联，截图 19/20 目检。
 - 回归：166 单元 / 28 重放（合计 19.3ms、最慢 l10 3.6ms）/ 126 浏览器（42×3）/ build 全通过；test-results 增 desktop.txt。
 提交：见第四轮提交（哈希回填于 evidence-index）。本轮不做最终报告与整体收尾。
+GitHub 推送（2026-11-25，用户过目 README 并确认后执行）：origin=https://github.com/ch20070319-glitch/EnArrower ，
+`git push -u origin main` 成功，远端 main 与本地一致（ls-remote 复核；首次推送 head=515b1e0，本记录提交随后同步推送）；exe 未入库（release/ 忽略）。
+Gitee 仓库仍为外部待办，未推送。
 
 ## 待用户补充
 - 完整指令截图 / 对话导出（docs/prompts 已存文本，截图待补）。

@@ -127,4 +127,6 @@
 - 构建网络（I24/I25）：GitHub 直连超时；经用户确认用 npmmirror 镜像取 Electron zip 与 builder 资源包，预置归档缓存；SHASUMS256.txt-45.5.0 种子入 electron 缓存使校验离线可过（sha256 与缓存 zip 实测一致）。镜像不写入项目配置。
 - 冒烟实测（desktop.txt + 截图 19/20）：exe 启动、CDP 目标 app://local/index.html、启动页与第 1 关渲染、点箭身发射 a/b 后存档 remaining 更新、重启后存档恢复中途局面、resource timing 无外联记录且进程无 ESTABLISHED 外联。
 - 同期回归：166 单元 / 28 重放（合计 19.3ms、最慢 l10 3.6ms）/ 126 浏览器 / build 全通过。
+- GitHub 上传：用户过目 README 全文并确认「按现状提交推送」后，`git push -u origin main` 推送全历史至
+  https://github.com/ch20070319-glitch/EnArrower （远端与本地 main 一致，ls-remote 复核）；推送前复核跟踪文件仅 .env.example 含 env 字样、无密钥。
 - 本轮不做最终报告与整体收尾（用户指令：待游戏内容定稿后再做）。
