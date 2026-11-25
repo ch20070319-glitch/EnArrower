@@ -193,3 +193,25 @@
 - 措施：保留集扩为 ['r','s','u6','u8']（仍只剩教学锚点 + 两支被锚点挡住的填充箭），提示首步仍为调头。
 - 复测：AC32 三视口通过（status 含「调头」、r is-hint=1）。
 - 状态：已解决。
+
+## I24 electron-builder 资源下载卡死/超时（第四轮）
+- 目标：npm run dist:win 产出 portable exe。
+- 表现：首跑 connect ETIMEDOUT 57.155.223.240:443；改镜像后二跑卡在 electron 100% 之后（进程仅一条到 GitHub 185.199.108.133 的连接）。
+- 原因（事实）：本机 GitHub 直连不可达；旧镜像路径 /mirrors/electron-builder-binaries/ 已 404，正确为 registry.npmmirror.com/-/binary/electron-builder-binaries/；builder 仍有个别请求走 GitHub。
+- 措施：经用户确认 npmmirror 后，curl 预置 nsis-3.0.4.1/3.0.4.2、nsis-resources-3.4.1、winCodeSign-2.6.0 到 %LOCALAPPDATA%/electron-builder/Cache/<releaseName>/<filename>（downloadAndExtract 先查归档缓存）。
+- 复测：资源本地命中，打包推进到 nsis 包与 portable exe。
+- 状态：已解决。
+
+## I25 SHASUMS256.txt 每次构建强制重拉致 600s 超时（第四轮）
+- 表现：缓存预置后三跑仍 Timeout awaiting 'request' for 600000ms，停在 packaging 阶段。
+- 原因（事实）：@electron/get 对 SHASUMS256.txt 以 cacheMode=Bypass 每次重下（#10039）；electron zip 虽已缓存仍触发该网络请求。
+- 措施：从镜像取 v45.5.0 SHASUMS256.txt 存为 %LOCALAPPDATA%/electron/Cache/SHASUMS256.txt-45.5.0（resolveSeededChecksums 种子契约），并 sha256sum 实测缓存 zip 与文件条目一致（20155c8b…69bd）。
+- 复测：四跑退出码 0，release/EnArrower-1.0.0-portable.exe 产出。
+- 状态：已解决。
+
+## I26 桌面冒烟取证方式修正（第四轮，非游戏缺陷）
+- 表现：全屏 CopyFromScreen 截屏全黑；冒烟脚本点普通箭身后等 #btn-fire 可点而超时。
+- 原因（事实）：会话无可见桌面致截屏黑；普通箭头点箭身即发射，#btn-fire 随 #sel-bar 仅 ⇄ 选中时显示（与网页版一致），脚本假设错误。
+- 措施：exe 带 --remote-debugging-port=9222，Playwright connectOverCDP 抓窗口截图与 DOM/存档断言；脚本改为点箭身直接验证发射。
+- 复测：截图 19/20 目检正常；发射、存档、重启恢复、零外联均实测通过。
+- 状态：已解决。

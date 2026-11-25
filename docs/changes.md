@@ -115,3 +115,16 @@
 - scripts/capture-evidence.mjs：07/17 通关序列改铺满后解法序；新增截图 18（l21 徽记直接调头、底部无调头按钮）；18 张全重截，目检 03（l01 49/49）/07/10（l19 49/49）/11（360 满宽）/16（灯亮）/17（全亮无下一关）/18。
 - docs：requirements §10、decisions D13、issues I19–I23、development-log 第三轮、acceptance 行文与第三轮说明、evidence-index、README 计数。
 - 本轮不做最终报告与整体收尾（用户指令：待游戏内容定稿后再做）。
+
+## 第四轮修改（2026-11-25 用户指令：Windows 桌面应用）
+
+### 阶段 K：Electron 免安装打包 + 冒烟实测
+- 新增 electron/main.cjs：注册特权标准协议 `app://`（standard/secure/supportFetchAPI），protocol.handle + net.fetch(pathToFileURL) 服务 dist，含路径穿越防护；BrowserWindow 1280×900（min 360×640）、sandbox + contextIsolation、无 nodeIntegration、无 preload、无应用菜单。
+- package.json：main 指向 electron/main.cjs；新增 scripts make:icon / electron:preview / dist:win；devDeps electron 45.5.0、electron-builder 26.18.0；build 字段仅 win portable 目标，files 只含 dist/electron/icon/package.json，npmRebuild=false。
+- vite.config.ts：`base:'./'`，同一份 dist 供 http 预览与桌面加载；index.html 未改（favicon/资源由 vite 重基）。
+- scripts/make-icon.mjs：Playwright chromium 将 public/favicon.svg 渲染为 build/icon.png（256×256 透明底）。
+- .gitignore：追加 `/release/`（exe 不进 Git）。
+- 构建网络（I24/I25）：GitHub 直连超时；经用户确认用 npmmirror 镜像取 Electron zip 与 builder 资源包，预置归档缓存；SHASUMS256.txt-45.5.0 种子入 electron 缓存使校验离线可过（sha256 与缓存 zip 实测一致）。镜像不写入项目配置。
+- 冒烟实测（desktop.txt + 截图 19/20）：exe 启动、CDP 目标 app://local/index.html、启动页与第 1 关渲染、点箭身发射 a/b 后存档 remaining 更新、重启后存档恢复中途局面、resource timing 无外联记录且进程无 ESTABLISHED 外联。
+- 同期回归：166 单元 / 28 重放（合计 19.3ms、最慢 l10 3.6ms）/ 126 浏览器 / build 全通过。
+- 本轮不做最终报告与整体收尾（用户指令：待游戏内容定稿后再做）。

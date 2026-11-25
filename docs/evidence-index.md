@@ -2,13 +2,14 @@
 
 所有证据均为实际执行产物。截图为 Playwright 真实渲染截取并逐张目检；移动视口为仿真，非真机。
 
-## 测试结果（evidence/test-results/，第三轮阶段 J 刷新）
+## 测试结果（evidence/test-results/，第三轮阶段 J 刷新；第四轮阶段 K 复跑并增 desktop.txt）
 | 文件 | 内容 | 结果 |
 |---|---|---|
 | unit.txt | `npm test`（Vitest，tests/unit 4 文件） | 166 passed |
-| levels.txt | `npm run validate:levels`（27 关 + 样例，校验+求解+逐步重放+逐关覆盖率与耗时） | 28/28 通过；无机关无灯关覆盖 49/49；耗时合计 19.7ms、最慢 l10 4.0ms（本机实测） |
+| levels.txt | `npm run validate:levels`（27 关 + 样例，校验+求解+逐步重放+逐关覆盖率与耗时） | 28/28 通过；无机关无灯关覆盖 49/49；第四轮复跑耗时合计 19.3ms、最慢 l10 3.6ms（本机实测） |
 | browser.txt | `npm run test:browser`（Playwright，42 用例 × desktop/mobile-390/mobile-360） | 126 passed |
 | build.txt | `npm run build`（tsc --noEmit && vite build） | 成功，无类型错误 |
+| desktop.txt | 第四轮 `npm run dist:win` + portable exe 冒烟（CDP 抓窗：启动/app:// 加载/发射存档/重启恢复/零外联） | exe 110,485,570 字节 sha256 8325e4e6…338e；冒烟各项实测通过；他机/SmartScreen 未验证 |
 
 ## 截图（evidence/screenshots/；第三轮 18 张全重截并目检关键张，18 为第三轮新增）
 | 文件 | 内容 |
@@ -31,6 +32,8 @@
 | 16-game-l26-lamp-lit.png | 第 26 关徽记调头向左经过灯后小屋点亮 |
 | 17-win-l27-all-lamps.png | 第 27 关全亮通关弹窗「点亮小屋：所有灯都亮了！」（末关无下一关） |
 | 18-game-l21-badge-turn.png | 第 21 关 ⇄ 尾格徽记直接点击调头后向左（不选中、底部无调头按钮） |
+| 19-desktop-exe.png | 第四轮：portable exe 窗口内第 1 关中途（a/b 已离场、9 支），CDP 抓窗目检 |
+| 20-desktop-exe-resume.png | 第四轮：exe 重启后继续存档恢复第 1 关 9 支中途局面 |
 
 ## API 记录（evidence/api/）
 - review-2026-11-16T08-42-29-353Z.json：`npm run review:deepseek` 实跑记录，status=not_called（环境无 DEEPSEEK_API_KEY）。**真实 API 调用尚未发生**；配置密钥后重跑将生成脱敏请求/响应/usage 记录。raw/ 目录已 gitignore。
@@ -59,6 +62,7 @@
 | ed7fc27 | 第二轮阶段 E：提示点名文案、求解规模阈值与实测耗时 + AC40 |
 | 721f9e9 | 第二轮阶段 F：证据刷新（test-results 四件 + 截图 10–17） |
 | d22c3a6 | 第三轮阶段 H–J：徽记调头 + 27 关铺满/加密 + 上限放宽 + 复测证据与文档 |
+| （待回填） | 第四轮阶段 K：Electron portable exe + app:// 主进程 + 冒烟证据与文档 |
 
 ## 待补（用户留存，不伪造）
 - 用户聊天完整截图/导出。

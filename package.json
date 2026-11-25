@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "description": "EnArrower - 轻松解压的箭头顺序解谜网页游戏",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -12,17 +13,47 @@
     "test:watch": "vitest",
     "test:browser": "playwright test",
     "validate:levels": "tsx scripts/validate-levels.ts",
-    "review:deepseek": "node scripts/deepseek-review.mjs"
+    "review:deepseek": "node scripts/deepseek-review.mjs",
+    "make:icon": "node scripts/make-icon.mjs",
+    "electron:preview": "npm run build && electron .",
+    "dist:win": "npm run build && electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.enarrower.desktop",
+    "productName": "EnArrower",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "npmRebuild": false,
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": "build/icon.png"
+    },
+    "portable": {
+      "artifactName": "EnArrower-${version}-portable.exe"
+    }
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",
     "@types/node": "^26.6.6",
+    "electron": "^45.5.0",
+    "electron-builder": "^26.18.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
     "vitest": "^5.1.0"
   },
   "allowScripts": {
-    "esbuild@0.28.2": true
+    "esbuild@0.28.2": true,
+    "electron@45.5.0": true
   }
 }

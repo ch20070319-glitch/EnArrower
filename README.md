@@ -38,6 +38,21 @@ npm run build          # tsc --noEmit && vite build → dist/
 npm run preview        # http://localhost:4173
 ```
 
+## Windows 桌面版（免安装，第四轮追加）
+```bash
+npm run make:icon      # 由 public/favicon.svg 渲染 build/icon.png（需 chromium）
+npm run dist:win       # build + electron-builder --win portable → release/EnArrower-1.0.0-portable.exe
+```
+- 单 exe 双击即玩、无需安装；仅 Windows x64 目标。
+- 桌面版与网页版共用同一份 dist（vite `base:'./'`）；渲染进程经 `app://` 自定义协议加载（ES module 与稳定 localStorage origin）。
+- 存档位于 Electron userData 目录（`%APPDATA%/enarrower`，目录名取 package.json 的 name），与浏览器存档相互独立；schema 与回退逻辑不变。
+- 渲染进程 sandbox + contextIsolation、无 nodeIntegration、无 preload；游戏零网络请求。
+- GitHub 不可达时可经 npmmirror 镜像下载 Electron 与打包资源（`ELECTRON_MIRROR` / `ELECTRON_BUILDER_BINARIES_MIRROR`，已经用户确认）。
+- `release/` 已 gitignore：exe 不进 Git，分发拷贝该文件即可。
+- 本机已实测冒烟：启动、`app://` 加载、点箭身发射与存档、重启恢复中途局面、零外联连接；
+  产物 110,485,570 字节，sha256 `8325e4e6…338e`，记录见 `evidence/test-results/desktop.txt` 与截图 19/20。
+  未配置代码签名，首次运行可能遇 SmartScreen 提示（未在他机实测）。
+
 ## 测试（均已实际执行）
 ```bash
 npm test               # Vitest 单元测试：166 passed（规则/求解器/会话/存档/27 关）

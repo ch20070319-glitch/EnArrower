@@ -81,6 +81,20 @@ AC23 首跑三视口失败，暴露末关 hidden 按钮被 .btn display 覆盖�
   四件 test-results 刷新；截图 18 张全重截、新增 18（徽记调头），目检 03/07/10/11/16/17/18（铺满、通关、满宽、灯亮、无下一关）。
 提交：见第三轮提交（哈希回填于 evidence-index）。本轮不做最终报告与整体收尾。
 
+## 第四轮修改（2026-11-25 用户指令；阶段 K）
+目标：把游戏做成可下载到电脑玩的 Windows 免安装应用（单 exe），网页版与关卡内容不变。
+工作：electron/main.cjs（app:// 特权协议 + 沙箱渲染）、package.json build/scripts/devDeps、vite base './'、
+make-icon 脚本、.gitignore /release/；README 桌面版小节与 requirements §11。
+检查（首跑→修复→复测）：
+- 打包首跑 ETIMEDOUT（GitHub 直连）、二跑卡死（I24）→ 用户确认 npmmirror 后预置 builder 归档缓存；
+  三跑 600s 超时定位为 SHASUMS256.txt 每次构建强制重拉（I25）→ 种子校验文件入缓存 → 四跑退出码 0，
+  产物 release/EnArrower-1.0.0-portable.exe（110,485,570 字节，sha256 8325e4e6…338e）。
+- 冒烟：桌面截屏在全屏会话下为黑屏（I26）→ 改 exe 带 --remote-debugging-port 由 Playwright connectOverCDP 抓窗口；
+  冒烟脚本误以为普通箭头需点 #btn-fire（实为点箭身即发射、#btn-fire 仅 ⇄ 选中显示，与网页版一致，非缺陷）→ 修正脚本后
+  验证发射/存档/重启恢复/零外联，截图 19/20 目检。
+- 回归：166 单元 / 28 重放（合计 19.3ms、最慢 l10 3.6ms）/ 126 浏览器（42×3）/ build 全通过；test-results 增 desktop.txt。
+提交：见第四轮提交（哈希回填于 evidence-index）。本轮不做最终报告与整体收尾。
+
 ## 待用户补充
 - 完整指令截图 / 对话导出（docs/prompts 已存文本，截图待补）。
 - 真机手机验证（当前为 Playwright 移动仿真，非真机）。

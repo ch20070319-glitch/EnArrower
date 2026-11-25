@@ -1,0 +1,40 @@
+第四轮 Windows 桌面版（portable exe）构建与冒烟实测
+日期：2026-11-25　机器：本机 win32 x64（OS 10.0.26200）　Node v24
+
+== 构建 ==
+命令：npm run dist:win（= tsc --noEmit && vite build && electron-builder --win portable）
+electron-builder 26.18.0 / electron 45.5.0；退出码 0。
+产物：release/EnArrower-1.0.0-portable.exe　110,485,570 字节
+sha256：8325e4e61202fa8a46ac70b0df99e43514eb18587dc147290a09d3e8e17c338e
+未配置代码签名证书，builder 跳过签名（日志原文：no code signing certificate configured, signing is skipped）。
+网络说明：GitHub 直连本机超时；经用户确认后使用 npmmirror 镜像下载 Electron zip 与
+builder 资源（nsis-3.0.4.1/3.0.4.2、nsis-resources-3.4.1、winCodeSign-2.6.0），
+并预置到 electron-builder 归档缓存与 electron 缓存（含 SHASUMS256.txt-45.5.0 种子校验文件，
+sha256 与缓存 zip 实测一致：20155c8b…69bd）。最终一次构建资源全部本地命中。
+镜像仅以环境变量/缓存形式用于本机构建，未写入项目配置。
+
+== 冒烟实测（Playwright connectOverCDP 连接 exe 的 --remote-debugging-port=9222）==
+1) 双击等价启动 portable exe：进程 EnArrower 存活，主窗口标题「EnArrower · 箭头解谜」。
+2) CDP /json/list：唯一 page 目标 url=app://local/index.html，title=EnArrower · 箭头解谜。
+3) 启动页渲染：body 文本含「轻松解压 · 顺序解谜 / EnArrower / 开始游戏 / 选择关卡 / 27 个原创关卡」。
+4) 点 #btn-start 进入第 1 关；真实鼠标点击箭身（.arrow-mover[data-arrow-id="a"] .arrow）
+   → 普通箭头直接发射离场，localStorage enarrower.save 的 remaining 变为 b..k；
+   再点 b → remaining 变为 c..k（9 支）。截图 evidence/screenshots/19-desktop-exe.png
+   目检：7×7 棋盘、9 支箭头、状态「箭头已离场。」、底部 撤销/重开/提示/查看机关 按钮齐全。
+   说明：#btn-fire 仅在 ⇄ 可调头箭头被选中时随 #sel-bar 显示，普通箭头点箭身即发射，与网页版一致。
+5) 零外联：performance.getEntriesByType("resource") 为空数组（无 http(s) 资源记录）；
+   PowerShell Get-NetTCPConnection 检查 EnArrower 全部进程：无 ESTABLISHED 外联连接。
+6) 存档位置：%APPDATA%/enarrower（含 Local Storage 等），独立于浏览器。
+7) 重启恢复：taskkill 后再次启动 exe，save 的 remaining 仍为 c..k；
+   点 #btn-start 恢复「第 1 关 · 初次见面」「9 支」，场上 ids=c,d,e,f,g,h,i,j,k。
+   截图 evidence/screenshots/20-desktop-exe-resume.png。
+8) 测试结束后已 taskkill 关闭全部 EnArrower 进程。
+
+== 同期复跑（网页版回归）==
+npm test：166 passed（166），见 unit.txt。
+npm run validate:levels：28 关全部合法有解可重放；求解合计 19.3ms、最慢 l10 3.6ms，见 levels.txt。
+npm run test:browser：126 passed（42 用例 ×3 视口），见 browser.txt（base './' 变更后复跑）。
+
+== 未验证 ==
+其他 Windows 机器/无开发环境机器上的双击体验；无签名 exe 的 SmartScreen 提示表现；
+便携 exe 在只读目录/受控目录下的自解压行为。以上均未实测，不写通过。
