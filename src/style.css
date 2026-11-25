@@ -419,6 +419,19 @@ body {
 .arrow--circle .arrow-badge-sym { fill: var(--violet-deep); }
 .arrow--reversible .arrow-badge-sym { fill: var(--coral-deep); }
 .arrow-badge--escort { fill: #f6d76b; }
+/* 第三轮：⇄ 徽记即调头按钮，尾格整格命中（移动视口下 ≥44px） */
+.arrow-turn { cursor: pointer; }
+.arrow-turn:focus { outline: none; }
+.arrow-turn:focus-visible .arrow-badge--turn { stroke: var(--coral-deep); stroke-width: 4; }
+.arrow-turn-hit { fill: transparent; }
+.arrow-badge--turn { fill: #fdfbf4; stroke: var(--coral-deep); stroke-width: 3; }
+.arrow-badge-sym--turn { font-size: 19px; }
+.arrow.is-turning .arrow-shape { animation: turn-pulse 0.34s ease; }
+@keyframes turn-pulse {
+  0%, 100% { transform: scale(1); }
+  45% { transform: scale(1.1); }
+}
+.sym--turn { color: var(--coral-deep); font-weight: 800; }
 /* 灯与小屋：未亮灰、点亮暖光 */
 .lamp-glow { fill: #f2c14e; opacity: 0; transition: opacity 0.3s ease; }
 .lamp-house { fill: var(--paper-deep); stroke: var(--muted); stroke-width: 3; stroke-linejoin: round; }

@@ -245,7 +245,9 @@ describe('会话：撤销 / 重开', () => {
     expect(session.won).toBe(false);
     expect(session.commitMove('e').ok).toBe(true);
     expect(session.won).toBe(true);
-    expect(session.state.remaining).toEqual(['a']);
+    expect(session.state.remaining).toEqual(
+      initialState(l25).remaining.filter((id) => !['s', 'b', 'e'].includes(id)),
+    );
     session.undo();
     expect(session.won).toBe(false);
   });

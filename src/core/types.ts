@@ -10,11 +10,12 @@ export interface ArrowDef {
   id: string;
   head: Cell;
   dir: Dir;
-  len: 1 | 2 | 3;
+  /** 直箭身格数；合法范围 1~5 由 validateLevel 校验（第三轮放宽）。 */
+  len: number;
   group?: GroupId;
-  /** 折线箭身：尾→头的相邻不重复坐标串（第一轮最多一个直角弯）。缺省时按 head/dir/len 推导直箭身。 */
+  /** 折线箭身：尾→头的相邻不重复坐标串（2~9 格、≤3 处直角弯，由 validateLevel 校验）。缺省时按 head/dir/len 推导直箭身。 */
   path?: Cell[];
-  /** ⇄ 可调头箭头：第一轮仅直箭头；调头沿原轴翻转 180°，占格不变。 */
+  /** ⇄ 可调头箭头：仅直箭头且 len≥2（⇄ 徽记独占尾格命中区）；调头沿原轴翻转 180°，占格不变。 */
   reversible?: boolean;
 }
 

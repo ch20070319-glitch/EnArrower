@@ -2,34 +2,35 @@
 
 所有证据均为实际执行产物。截图为 Playwright 真实渲染截取并逐张目检；移动视口为仿真，非真机。
 
-## 测试结果（evidence/test-results/，第二轮阶段 F 刷新）
+## 测试结果（evidence/test-results/，第三轮阶段 J 刷新）
 | 文件 | 内容 | 结果 |
 |---|---|---|
 | unit.txt | `npm test`（Vitest，tests/unit 4 文件） | 166 passed |
-| levels.txt | `npm run validate:levels`（27 关 + 样例，校验+求解+逐步重放+逐关耗时） | 28/28 通过；耗时合计约 6ms、最慢 l01 约 0.7ms（本机实测） |
+| levels.txt | `npm run validate:levels`（27 关 + 样例，校验+求解+逐步重放+逐关覆盖率与耗时） | 28/28 通过；无机关无灯关覆盖 49/49；耗时合计 19.7ms、最慢 l10 4.0ms（本机实测） |
 | browser.txt | `npm run test:browser`（Playwright，42 用例 × desktop/mobile-390/mobile-360） | 126 passed |
 | build.txt | `npm run build`（tsc --noEmit && vite build） | 成功，无类型错误 |
 
-## 截图（evidence/screenshots/；01–09 阶段 6 起沿用并按需重截，10–17 第二轮新增并目检）
+## 截图（evidence/screenshots/；第三轮 18 张全重截并目检关键张，18 为第三轮新增）
 | 文件 | 内容 |
 |---|---|
 | 01-home-desktop.png | 首页（桌面 1280，文案 27 关） |
 | 02-home-mobile-360.png | 首页（360 移动仿真） |
-| 03-game-l01-desktop.png | 第 1 关棋盘（桌面） |
+| 03-game-l01-desktop.png | 第 1 关棋盘（桌面，铺满 49/49、11 箭） |
 | 04-levels-desktop.png | 选关页 27 格（完成/解锁/锁定三态，1280×1080） |
-| 05-game-l12-desktop.png | 第 12 关双组机关棋盘 |
+| 05-game-l12-desktop.png | 第 12 关双组机关棋盘（加密后 12 箭） |
 | 06-inspect-preview.png | 查看机关模式预览（闸门高亮 + 将开启/将关闭） |
-| 07-win-desktop.png | 通关反馈覆盖层 |
+| 07-win-desktop.png | 通关反馈覆盖层（l01 铺满后 11 步清空） |
 | 08-game-l11-mobile-360.png | 第 11 关（360 移动仿真，控件 2×2） |
-| 09-game-l18-desktop.png | 第 18 关终局回环（双组三门九箭，桌面） |
-| 10-game-l19-poly-desktop.png | 第 19 关折线教学（L 形箭身，桌面） |
+| 09-game-l18-desktop.png | 第 18 关终局回环（双组三门，加密后 12 箭，桌面） |
+| 10-game-l19-poly-desktop.png | 第 19 关折线教学（铺满 49/49、12 箭含多弯折线，桌面） |
 | 11-game-l20-mobile-360.png | 第 20 关 8×12 大棋盘（360 仿真满宽、格 44.25px，整页） |
-| 12-game-l21-turn-selected.png | 第 21 关 ⇄ 选中态（珊瑚色 + 预览射线 + 调头/发射选中条） |
+| 12-game-l21-turn-selected.png | 第 21 关 ⇄ 选中态（珊瑚色 + 预览射线 + 发射/取消选中条） |
 | 13-game-l23-relay-link.png | 第 23 关接力虚线连接 A/B |
 | 14-relay-mid-animation.png | 接力中途帧：A 已离场、B 仍在场（顺序动画证据） |
 | 15-game-l25-escort.png | 第 25 关护送 ★ 金色徽章 |
-| 16-game-l26-lamp-lit.png | 第 26 关调头向左经过灯后小屋点亮 |
+| 16-game-l26-lamp-lit.png | 第 26 关徽记调头向左经过灯后小屋点亮 |
 | 17-win-l27-all-lamps.png | 第 27 关全亮通关弹窗「点亮小屋：所有灯都亮了！」（末关无下一关） |
+| 18-game-l21-badge-turn.png | 第 21 关 ⇄ 尾格徽记直接点击调头后向左（不选中、底部无调头按钮） |
 
 ## API 记录（evidence/api/）
 - review-2026-11-16T08-42-29-353Z.json：`npm run review:deepseek` 实跑记录，status=not_called（环境无 DEEPSEEK_API_KEY）。**真实 API 调用尚未发生**；配置密钥后重跑将生成脱敏请求/响应/usage 记录。raw/ 目录已 gitignore。

@@ -1,5 +1,7 @@
 import { expect, test, Page } from '@playwright/test';
 import { LEVELS } from '../../src/levels/levels';
+import { solve, type SolverOp } from '../../src/core/solver';
+import { initialState } from '../../src/core/rules';
 
 const SAVE_KEY = 'enarrower.save';
 
@@ -68,6 +70,57 @@ async function sampleExit(page: Page, ariaFragment: string) {
 }
 
 /** 按关卡内箭头 id 点击并等待动画提交完成。 */
+async function clickTurnBadge(page: Page, id: string) {
+  await page.click(`.arrow-mover[data-arrow-id="${id}"] .arrow-turn`);
+  await page.waitForTimeout(150);
+}
+
+/** 第三轮：铺满棋盘后通关步数变多，用例改为重放求解器解法（断言强度不变）。 */
+async function replayOps(page: Page, index: number, ops: SolverOp[]) {
+  const level = LEVELS[index - 1];
+  for (const op of ops) {
+    if (op.kind === 'turn') {
+      await clickTurnBadge(page, op.arrowId);
+    } else if (op.kind === 'relay') {
+      await clickArrow(page, op.arrowId);
+      await page.waitForTimeout(1200);
+    } else {
+      const def = level.arrows.find((a) => a.id === op.arrowId)!;
+      await clickArrow(page, op.arrowId);
+      if (def.reversible) await page.click('#btn-fire');
+      await page.waitForTimeout(700);
+    }
+  }
+}
+
+async function playSolution(page: Page, index: number) {
+  const level = LEVELS[index - 1];
+  const result = solve(level, initialState(level));
+  if (!result.solvable || !result.solution) throw new Error('level unsolvable: ' + level.id);
+  await replayOps(page, index, result.solution);
+}
+
+/** 从当前存档状态清空剩余箭头（教学锚点步之后补完填充箭）。 */
+async function finishLevel(page: Page, index: number) {
+  const level = LEVELS[index - 1];
+  const save = await readSave(page);
+  const result = solve(level, save.current.state);
+  if (!result.solvable || !result.solution) throw new Error('level unsolvable from current: ' + level.id);
+  await replayOps(page, index, result.solution);
+}
+
+/** 反复执行求解器首步，直到场上只剩指定箭头（保留教学锚点局面）。 */
+async function clearUntil(page: Page, index: number, keep: string[]) {
+  const level = LEVELS[index - 1];
+  for (;;) {
+    const save = await readSave(page);
+    if (save.current.state.remaining.every((id: string) => keep.includes(id))) return;
+    const result = solve(level, save.current.state);
+    if (!result.solvable || !result.solution) throw new Error('level unsolvable: ' + level.id);
+    await replayOps(page, index, [result.solution[0]]);
+  }
+}
+
 async function clickArrow(page: Page, id: string) {
   await page.evaluate((arrowId) => {
     const node = document.querySelector<SVGGElement>(`.arrow-mover[data-arrow-id="${arrowId}"] .arrow`);
@@ -170,7 +223,7 @@ test.describe('离场动画', () => {
   test('AC02 向右箭头连续位移，尾部出界后才移除', async ({ page }) => {
     await fresh(page);
     await page.click('#btn-start');
-    const { samples, removed, max, distinct } = await sampleExit(page, '向右，长度 1');
+    const { samples, removed, max, distinct } = await sampleExit(page, '向右，长度 3');
     expect(removed).toBe(true);
     expect(max).toBeGreaterThan(300);
     expect(distinct).toBeGreaterThan(5);
@@ -181,7 +234,7 @@ test.describe('离场动画', () => {
   test('AC02 向下多格箭头连续位移', async ({ page }) => {
     await fresh(page);
     await page.click('#btn-start');
-    const { removed, distinct, max } = await sampleExit(page, '向下，长度 1');
+    const { removed, distinct, max } = await sampleExit(page, '向下，长度 5');
     expect(removed).toBe(true);
     expect(distinct).toBeGreaterThan(5);
     expect(max).toBeGreaterThan(200);
@@ -191,6 +244,7 @@ test.describe('离场动画', () => {
     await fresh(page);
     await page.click('#btn-start');
     const result = await page.evaluate(async () => {
+      const initial = JSON.parse(localStorage.getItem('enarrower.save')!).current.state.remaining;
       const arrow = document.querySelector<SVGGElement>('.arrow')!;
       for (let i = 0; i < 8; i++) {
         arrow.dispatchEvent(new MouseEvent('click', { bubbles: true }));
@@ -199,14 +253,15 @@ test.describe('离场动画', () => {
       await new Promise((r) => setTimeout(r, 800));
       const save = JSON.parse(localStorage.getItem('enarrower.save')!);
       return {
+        initial,
         remaining: save.current.state.remaining,
         historyLen: save.current.history.length,
         arrowsInDom: document.querySelectorAll('.arrow').length,
       };
     });
-    expect(result.remaining).toEqual(['b', 'c']);
+    expect(result.remaining).toEqual(result.initial.slice(1));
     expect(result.historyLen).toBe(1);
-    expect(result.arrowsInDom).toBe(2);
+    expect(result.arrowsInDom).toBe(result.initial.length - 1);
   });
 
   test('AC06 动画期间撤销/重开/提示被禁用', async ({ page }) => {
@@ -275,7 +330,7 @@ test.describe('阻挡与机关', () => {
     await expect(page.locator('.gate.is-preview')).toHaveCount(1);
     await expect(page.locator('.gate.is-preview .gate-label')).toHaveText('将开启');
     const before = await readSave(page);
-    expect(before.current.state.remaining).toEqual(['s', 'b', 'c']);
+    expect(before.current.state.remaining).toEqual(initialState(LEVELS[3]).remaining);
   });
 
   test('AC15 查看机关模式点击只预览不移动', async ({ page }) => {
@@ -313,7 +368,7 @@ test.describe('撤销 / 重开 / 提示', () => {
     await page.click('#btn-undo');
     const after = await readSave(page);
     expect(after.current.state.open.diamond).toBe(false);
-    expect(after.current.state.remaining).toEqual(['s', 'b', 'c']);
+    expect(after.current.state.remaining).toEqual(initialState(LEVELS[3]).remaining);
     await expect(page.locator('#btn-undo')).toBeDisabled();
   });
 
@@ -326,7 +381,7 @@ test.describe('撤销 / 重开 / 提示', () => {
     await page.waitForTimeout(800);
     await page.click('#btn-restart');
     const after = await readSave(page);
-    expect(after.current.state.remaining).toEqual(['s', 'b', 'c']);
+    expect(after.current.state.remaining).toEqual(initialState(LEVELS[3]).remaining);
     expect(after.current.state.open.diamond).toBe(false);
     expect(after.current.history.length).toBe(0);
   });
@@ -383,15 +438,7 @@ test.describe('通关与存档', () => {
   test('AC07 最后一支离场后通关并解锁下一关', async ({ page }) => {
     await fresh(page);
     await page.click('#btn-start');
-    for (const frag of ['向右，长度 1', '向下，长度 1', '向右，长度 2']) {
-      await page.evaluate((f) => {
-        const a = [...document.querySelectorAll<SVGGElement>('.arrow')].find((x) =>
-          x.getAttribute('aria-label')?.includes(f),
-        )!;
-        a.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      }, frag);
-      await page.waitForTimeout(700);
-    }
+    await playSolution(page, 1);
     await expect(page.locator('#win-overlay')).toBeVisible();
     const save = await readSave(page);
     expect(save.completed).toContain('l01');
@@ -401,6 +448,7 @@ test.describe('通关与存档', () => {
   test('AC13 刷新恢复进行中状态与历史', async ({ page }) => {
     await fresh(page);
     await page.click('#btn-start');
+    const initial = (await readSave(page)).current.state.remaining as string[];
     await page.evaluate(() => {
       document.querySelector<SVGGElement>('.arrow')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
@@ -408,9 +456,9 @@ test.describe('通关与存档', () => {
     await page.reload();
     await page.click('#btn-start');
     const save = await readSave(page);
-    expect(save.current.state.remaining).toEqual(['b', 'c']);
+    expect(save.current.state.remaining).toEqual(initial.slice(1));
     expect(save.current.history.length).toBe(1);
-    await expect(page.locator('#game-count')).toHaveText('2 支');
+    await expect(page.locator('#game-count')).toHaveText(`${initial.length - 1} 支`);
     await expect(page.locator('#btn-undo')).toBeEnabled();
   });
 
@@ -427,6 +475,7 @@ test.describe('通关与存档', () => {
   test('AC14 动画中刷新恢复上一个稳定状态', async ({ page }) => {
     await fresh(page);
     await page.click('#btn-start');
+    const initial = (await readSave(page)).current.state.remaining as string[];
     await page.evaluate(() => {
       document.querySelector<SVGGElement>('.arrow')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
@@ -434,7 +483,7 @@ test.describe('通关与存档', () => {
     await page.reload();
     await page.click('#btn-start');
     const save = await readSave(page);
-    expect(save.current.state.remaining).toEqual(['a', 'b', 'c']);
+    expect(save.current.state.remaining).toEqual(initial);
     expect(save.current.history.length).toBe(0);
   });
 });
@@ -460,6 +509,7 @@ test.describe('响应式与减少动态', () => {
   test('AC17 动画中改变窗口尺寸不锁死、结果一致', async ({ page }) => {
     await fresh(page);
     await page.click('#btn-start');
+    const initial = (await readSave(page)).current.state.remaining as string[];
     await page.evaluate(() => {
       document.querySelector<SVGGElement>('.arrow')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
@@ -469,7 +519,7 @@ test.describe('响应式与减少动态', () => {
     await page.setViewportSize({ width: 1100, height: 800 });
     await page.waitForTimeout(700);
     const save = await readSave(page);
-    expect(save.current.state.remaining).toEqual(['b', 'c']);
+    expect(save.current.state.remaining).toEqual(initial.slice(1));
     expect(save.current.history.length).toBe(1);
     await expect(page.locator('#btn-restart')).toBeEnabled();
   });
@@ -478,12 +528,13 @@ test.describe('响应式与减少动态', () => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await fresh(page);
     await page.click('#btn-start');
+    const initial = (await readSave(page)).current.state.remaining as string[];
     await page.evaluate(() => {
       document.querySelector<SVGGElement>('.arrow')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     });
     await page.waitForTimeout(200);
     const save = await readSave(page);
-    expect(save.current.state.remaining).toEqual(['b', 'c']);
+    expect(save.current.state.remaining).toEqual(initial.slice(1));
     expect(save.current.history.length).toBe(1);
   });
 });
@@ -497,13 +548,15 @@ test.describe('进阶机关关卡（13-18）', () => {
     await expect(page.locator('#status')).toContainText('无法通关');
     const save = await readSave(page);
     expect(save.current.state.open.diamond).toBe(false);
-    expect(save.current.state.remaining).toEqual(['a', 'b', 'c']);
+    expect(save.current.state.remaining).toEqual(
+      initialState(LEVELS[12]).remaining.filter((id) => !['f', 's'].includes(id)),
+    );
   });
 
   test('AC22 第17关跨组链条完整通关并解锁第18关', async ({ page }) => {
     await fresh(page, true);
     await openLevel(page, 17);
-    for (const id of ['sc', 'sd', 'e', 'a', 'b', 'd', 'c']) await clickArrow(page, id);
+    await playSolution(page, 17);
     await expect(page.locator('#win-overlay')).toBeVisible();
     const save = await readSave(page);
     expect(save.completed).toContain('l17');
@@ -513,7 +566,7 @@ test.describe('进阶机关关卡（13-18）', () => {
   test('AC23 第18关通关后下一关指向折线教学关', async ({ page }) => {
     await fresh(page, true);
     await openLevel(page, 18);
-    for (const id of ['f', 'sd', 'a', 'b', 'sc', 'c', 'g', 'd', 'e']) await clickArrow(page, id);
+    await playSolution(page, 18);
     await expect(page.locator('#win-overlay')).toBeVisible();
     await expect(page.locator('#btn-next')).toBeVisible();
     await expect(page.locator('#btn-next')).toContainText('折弯初识');
@@ -574,7 +627,7 @@ test.describe('大棋盘与折线箭头（19-20）', () => {
   test('AC27 第20关大棋盘完整通关，下一关指向调头教学', async ({ page }) => {
     await fresh(page, true);
     await openLevel(page, 20);
-    for (const id of ['k1', 'k2', 's', 'a', 'b', 'c', 'd', 'e', 'f']) await clickArrow(page, id);
+    await playSolution(page, 20);
     await expect(page.locator('#win-overlay')).toBeVisible();
     await expect(page.locator('#btn-next')).toContainText('调头初试');
     const save = await readSave(page);
@@ -602,13 +655,16 @@ test.describe('可调头箭头（21-22）', () => {
     expect(blocked.current.state.remaining).toEqual(before.current.state.remaining);
     expect(blocked.current.history.length).toBe(0);
 
-    await clickArrow(page, 'r');
-    await page.click('#btn-turn');
-    await expect(page.locator('#sel-label')).toContainText('当前向左');
+    // 第三轮：⇄ 徽记直接调头，无需先选中；底部不再有调头按钮
+    await expect(page.locator('#btn-turn')).toHaveCount(0);
+    await clickTurnBadge(page, 'r');
     const turned = await readSave(page);
     expect(turned.current.state.turned).toEqual(['r']);
     expect(turned.current.history.length).toBe(1);
     expect(turned.current.state.open.diamond).toBe(false);
+    await expect(page.locator('#sel-bar')).toBeHidden();
+    await clickArrow(page, 'r');
+    await expect(page.locator('#sel-label')).toContainText('当前向左');
 
     await page.click('#btn-fire');
     await page.waitForTimeout(700);
@@ -629,11 +685,12 @@ test.describe('可调头箭头（21-22）', () => {
     await fresh(page, true);
     await openLevel(page, 21);
     await clickArrow(page, 'a');
+    await clickTurnBadge(page, 'r');
     await clickArrow(page, 'r');
-    await page.click('#btn-turn');
     await page.click('#btn-fire');
     await page.waitForTimeout(700);
     await clickArrow(page, 's');
+    await finishLevel(page, 21);
     await expect(page.locator('#win-overlay')).toBeVisible();
     const save = await readSave(page);
     expect(save.completed).toContain('l21');
@@ -642,8 +699,7 @@ test.describe('可调头箭头（21-22）', () => {
   test('AC30 调头后刷新页面：继续游戏恢复朝向', async ({ page }) => {
     await fresh(page, true);
     await openLevel(page, 21);
-    await clickArrow(page, 'r');
-    await page.click('#btn-turn');
+    await clickTurnBadge(page, 'r');
     await page.reload();
     await page.click('#btn-start');
     await expect(page.locator('#screen-game')).toBeVisible();
@@ -664,11 +720,12 @@ test.describe('可调头箭头（21-22）', () => {
     await page.click('#btn-fire');
     await page.waitForTimeout(300);
     await expect(page.locator('#status')).toContainText('被挡住');
+    await clickTurnBadge(page, 'r');
     await clickArrow(page, 'r');
-    await page.click('#btn-turn');
     await page.click('#btn-fire');
     await page.waitForTimeout(700);
     await clickArrow(page, 's');
+    await finishLevel(page, 22);
     await expect(page.locator('#win-overlay')).toBeVisible();
     await expect(page.locator('#btn-next')).toContainText('接力过桥');
     const save = await readSave(page);
@@ -678,7 +735,7 @@ test.describe('可调头箭头（21-22）', () => {
   test('AC32 提示识别调头操作：a 离场后提示先调头', async ({ page }) => {
     await fresh(page, true);
     await openLevel(page, 21);
-    await clickArrow(page, 'a');
+    await clearUntil(page, 21, ['r', 's', 'u6', 'u8']);
     await page.click('#btn-hint');
     await expect(page.locator('#status')).toContainText('调头');
     await expect(page.locator('.arrow-mover[data-arrow-id="r"] .arrow.is-hint')).toHaveCount(1);
@@ -703,7 +760,7 @@ test.describe('接力箭头（23-24）', () => {
     await expect(page.locator('#status')).toContainText('被挡住');
     await expect(page.locator('#status')).toContainText('闸门');
     const blocked = await readSave(page);
-    expect(blocked.current.state.remaining).toEqual(['A', 'B', 'C']);
+    expect(blocked.current.state.remaining).toEqual(initialState(LEVELS[22]).remaining);
     expect(blocked.current.history.length).toBe(0);
     expect(blocked.current.state.open.diamond).toBe(false);
 
@@ -711,13 +768,23 @@ test.describe('接力箭头（23-24）', () => {
     await clickArrow(page, 'A');
     await page.waitForTimeout(1200);
     const relayed = await readSave(page);
-    expect(relayed.current.state.remaining).toEqual([]);
+    expect(relayed.current.state.remaining).toEqual(
+      initialState(LEVELS[22]).remaining.filter((id) => !['A', 'B', 'C'].includes(id)),
+    );
     expect(relayed.current.history.length).toBe(2);
+    await finishLevel(page, 23);
     await expect(page.locator('#win-overlay')).toBeVisible();
 
     await page.click('#btn-win-undo');
+    // 加密后通关前还有填充箭步：撤销回接力刚完成的那一刻（历史 = C + 接力 两步），再撤销接力本身
+    while ((await readSave(page)).current.history.length > 2) {
+      await page.click('#btn-undo');
+    }
+    await page.click('#btn-undo');
     const undone = await readSave(page);
-    expect(undone.current.state.remaining).toEqual(['A', 'B']);
+    expect(undone.current.state.remaining).toEqual(
+      initialState(LEVELS[22]).remaining.filter((id) => id !== 'C'),
+    );
     expect(undone.current.state.open.diamond).toBe(true);
     await expect(page.locator('.arrow-mover[data-arrow-id="A"]')).toHaveCount(1);
     await expect(page.locator('.arrow-mover[data-arrow-id="B"]')).toHaveCount(1);
@@ -732,13 +799,14 @@ test.describe('接力箭头（23-24）', () => {
     await clickArrow(page, 't');
     await clickArrow(page, 'C');
     await page.waitForTimeout(1200);
+    await finishLevel(page, 24);
     await expect(page.locator('#win-overlay')).toBeVisible();
     await expect(page.locator('#btn-next')).toBeVisible();
     await expect(page.locator('#btn-next')).toContainText('护送星标');
     const save = await readSave(page);
     expect(save.completed).toContain('l24');
     expect(save.current.state.remaining).toEqual([]);
-    expect(save.current.history.length).toBe(4);
+    expect(save.current.history.length).toBeGreaterThanOrEqual(4);
   });
 
   test('AC35 接力顺序动画：A 先出、B 后出，逐帧可证', async ({ page }) => {
@@ -749,7 +817,9 @@ test.describe('接力箭头（23-24）', () => {
     expect(sawLeaderGoneFollowerPresent).toBe(true);
     expect(bothGone).toBe(true);
     const save = await readSave(page);
-    expect(save.current.state.remaining).toEqual([]);
+    expect(save.current.state.remaining).toEqual(
+      initialState(LEVELS[22]).remaining.filter((id) => !['A', 'B', 'C'].includes(id)),
+    );
     expect(save.current.history.length).toBe(2);
   });
 });
@@ -768,7 +838,9 @@ test.describe('护送与点灯（25-27）', () => {
     await expect(page.locator('#status')).toContainText('★');
     await expect(page.locator('.arrow-mover[data-arrow-id="a"]')).toHaveCount(1);
     const save = await readSave(page);
-    expect(save.current.state.remaining).toEqual(['a']);
+    expect(save.current.state.remaining).toEqual(
+      initialState(LEVELS[24]).remaining.filter((id) => !['s', 'b', 'e'].includes(id)),
+    );
     expect(save.completed).toContain('l25');
     await expect(page.locator('#btn-next')).toContainText('灯与调头');
   });
@@ -784,6 +856,7 @@ test.describe('护送与点灯（25-27）', () => {
     await expect(page.locator('.lamp--lit')).toHaveCount(0);
     await clickArrow(page, 'c');
     await clickArrow(page, 'a');
+    await finishLevel(page, 26);
     await expect(page.locator('#win-overlay')).toBeVisible();
     await expect(page.locator('#win-detail')).toContainText('还有 1 盏灯没亮');
   });
@@ -792,8 +865,8 @@ test.describe('护送与点灯（25-27）', () => {
     await fresh(page, true);
     await openLevel(page, 26);
     await clickArrow(page, 'c');
+    await clickTurnBadge(page, 'r');
     await clickArrow(page, 'r');
-    await page.click('#btn-turn');
     await page.click('#btn-fire');
     await page.waitForTimeout(700);
     await expect(page.locator('.lamp--lit')).toHaveCount(1);
@@ -815,6 +888,7 @@ test.describe('护送与点灯（25-27）', () => {
     await expect(page.locator('.lamp--lit')).toHaveCount(1);
     await expect(page.locator('.lamp')).toHaveAttribute('aria-label', /已点亮/);
     await clickArrow(page, 'a');
+    await finishLevel(page, 26);
     await expect(page.locator('#win-overlay')).toBeVisible();
     await expect(page.locator('#win-detail')).toContainText('点亮小屋：所有灯都亮了');
   });
@@ -832,6 +906,7 @@ test.describe('护送与点灯（25-27）', () => {
     await page.waitForTimeout(700);
     await expect(page.locator('.lamp--lit')).toHaveCount(2);
     await clickArrow(page, 'd');
+    await finishLevel(page, 27);
     await expect(page.locator('#win-overlay')).toBeVisible();
     await expect(page.locator('#win-detail')).toContainText('点亮小屋：所有灯都亮了');
     await expect(page.locator('#btn-next')).toBeHidden();

@@ -16,8 +16,25 @@ import {
   sweptCells,
 } from '../../src/core/rules';
 import { solve } from '../../src/core/solver';
+import type { GameState, LevelDef } from '../../src/core/types';
 import { LEVELS } from '../../src/levels/levels';
 import { validateLevel } from '../../src/levels/validate';
+
+/** 从当前状态用求解器清空剩余箭头（加密后关卡含填充箭，部分清空不等于通关）。 */
+function finish(level: LevelDef, from: GameState): GameState {
+  const result = solve(level, from);
+  expect(result.solvable).toBe(true);
+  let state = from;
+  for (const op of result.solution!) {
+    state =
+      op.kind === 'turn'
+        ? applyTurn(level, state, op.arrowId).state
+        : op.kind === 'relay'
+          ? applyRelay(level, state, op.arrowId).state
+          : applyMove(level, state, op.arrowId).state;
+  }
+  return state;
+}
 
 describe('27 个正式关卡', () => {
   it('数量与编号连续', () => {
@@ -116,11 +133,15 @@ describe('折线箭头规则（绳随路线）', () => {
   });
 
   it('绳随路线 = 自身格 + 出口射线，与碰撞判定共用', () => {
+    // 第三轮铺满后 l19 的 k 头部贴边：出口射线为空，swept 即自身格
     const k = l19.arrows.find((a) => a.id === 'k')!;
-    const swept = sweptCells(l19, k).map(cellKey);
-    expect(swept).toEqual([...k.path!.map(cellKey), '2,1', '2,0']);
-    // 出口射线步数 = head.y+1 = 3（含头部出界那一步），绳随总长 = 3 + (5-1)
-    expect(exitDistance(l19, k)).toBe(3 + (k.path!.length - 1));
+    expect(sweptCells(l19, k).map(cellKey)).toEqual(k.path!.map(cellKey));
+    expect(exitDistance(l19, k)).toBe(1 + (k.path!.length - 1));
+    // 头部不贴边的折线（l03 d）：swept = 自身 9 格 + 射线 (6,1),(6,0)
+    const l03 = LEVELS[2];
+    const d = l03.arrows.find((a) => a.id === 'd')!;
+    expect(sweptCells(l03, d).map(cellKey)).toEqual([...d.path!.map(cellKey), '6,1', '6,0']);
+    expect(exitDistance(l03, d)).toBe(3 + (d.path!.length - 1));
   });
 
   it('大棋盘折线湾口挡钥匙：k1 离场后 s 才可动', () => {
@@ -210,7 +231,7 @@ describe('接力箭头（A 带 B）', () => {
     const result = applyRelay(l23, s0, 'A');
     expect(result.ok).toBe(false);
     expect(result.state).toBe(s0);
-    expect(result.state.remaining).toEqual(['A', 'B', 'C']);
+    expect(result.state.remaining).toEqual(initialState(l23).remaining);
     expect(result.state.open.diamond).toBe(false);
   });
 
@@ -226,7 +247,10 @@ describe('接力箭头（A 带 B）', () => {
     const result = applyRelay(l23, state, 'A');
     expect(result.ok).toBe(true);
     state = result.state;
-    expect(state.remaining).toEqual([]);
+    expect(state.remaining).toEqual(
+      initialState(l23).remaining.filter((id) => !['A', 'B', 'C'].includes(id)),
+    );
+    state = finish(l23, state);
     expect(isWin(l23, state)).toBe(true);
   });
 
@@ -236,11 +260,14 @@ describe('接力箭头（A 带 B）', () => {
     expect(checkMove(l24, state, 't').blocker).toMatchObject({ kind: 'arrow', arrowId: 'B' });
     state = applyMove(l24, state, 's').state;
     state = applyRelay(l24, state, 'A').state;
-    expect(state.remaining).toEqual(['C', 'D', 't']);
+    expect(state.remaining).toEqual(
+      initialState(l24).remaining.filter((id) => !['s', 'A', 'B'].includes(id)),
+    );
     expect(checkMove(l24, state, 't').ok).toBe(true);
     state = applyMove(l24, state, 't').state;
     expect(checkRelay(l24, state, 'C').ok).toBe(true);
     state = applyRelay(l24, state, 'C').state;
+    state = finish(l24, state);
     expect(isWin(l24, state)).toBe(true);
   });
 
@@ -270,7 +297,9 @@ describe('护送与点灯', () => {
     state = applyMove(l25, state, 'b').state;
     expect(isWin(l25, state)).toBe(false);
     state = applyMove(l25, state, 'e').state;
-    expect(state.remaining).toEqual(['a']);
+    expect(state.remaining).toEqual(
+      initialState(l25).remaining.filter((id) => !['s', 'b', 'e'].includes(id)),
+    );
     expect(isWin(l25, state)).toBe(true);
   });
 
@@ -290,6 +319,7 @@ describe('护送与点灯', () => {
     expect(state.lit).toEqual([]);
     state = applyMove(l26, state, 'c').state;
     state = applyMove(l26, state, 'a').state;
+    state = finish(l26, state);
     expect(isWin(l26, state)).toBe(true);
     expect(allLampsLit(l26, state)).toBe(false);
   });
@@ -299,9 +329,12 @@ describe('护送与点灯', () => {
     state = applyTurn(l26, state, 'r').state;
     state = applyMove(l26, state, 'r').state;
     expect(state.lit).toEqual(['0,3']);
-    expect(state.remaining).toEqual(['a']);
+    expect(state.remaining).toEqual(
+      initialState(l26).remaining.filter((id) => !['c', 'r'].includes(id)),
+    );
     expect(isWin(l26, state)).toBe(false);
     state = applyMove(l26, state, 'a').state;
+    state = finish(l26, state);
     expect(isWin(l26, state)).toBe(true);
     expect(allLampsLit(l26, state)).toBe(true);
   });
@@ -314,6 +347,7 @@ describe('护送与点灯', () => {
     state = applyMove(l27, state, 'r').state;
     expect(state.lit).toContain('6,4');
     state = applyMove(l27, state, 'd').state;
+    state = finish(l27, state);
     expect(isWin(l27, state)).toBe(true);
     expect(allLampsLit(l27, state)).toBe(true);
   });

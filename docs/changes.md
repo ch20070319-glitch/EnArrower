@@ -93,3 +93,25 @@
 - 复测：166 单元 / 28 条重放（27 关+样例，含耗时）/ 126 浏览器（42 用例 ×3 视口）/ build 全通过；evidence/test-results 四件刷新。
 - scripts/capture-evidence.mjs：解锁种子扩到 27；新增截图 10–17（l19 折线、l20 360 满宽整页、l21 选中条、l23 虚线、接力中途 A 已出 B 在场、l25 ★、l26 灯亮、l27 全亮通关弹窗），逐张目检。
 - 本轮不做最终报告与整体收尾（用户指令：待游戏内容定稿后再做）。
+
+## 第三轮修改（2026-11-25 用户指令：徽记调头 / 铺满加密 / 更长更多弯折）
+
+### 阶段 H：⇄ 徽记直接调头 + 上限放宽
+- src/ui/board.ts：BoardCallbacks 增 onTurn；⇄ 徽记移到尾格中心（命中圆 r=50 独占整格），click/keydown stopPropagation 直接调头；新增 flashTurn 脉冲反馈；箭身命中区为其余格。
+- src/ui/app.ts：删除 #btn-turn 监听，turnSelected 改为 turnById（徽记回调直达 commitTurn）；选中 ⇄ 文案改为「点箭尾 ⇄ 徽记调头，或在此发射」。
+- index.html：选中条移除调头按钮（只留发射/取消）；玩法说明与键盘说明同步徽记调头。
+- src/style.css：.arrow-turn / .arrow-turn-hit / .arrow-badge--turn / turn-pulse 动画与聚焦描边。
+- src/core/types.ts + src/levels/validate.ts：len 字面量联合 1|2|3 → number（校验 1~5）；折线 2~9 格、≤3 弯；⇄ 需 len≥2。
+- 修复：AC29 徽记调头不选中导致隐藏选中条内 #btn-fire 不可见 → 用例补「点箭身选中」一步（I19）；len 联合类型使 build 失败、dist 陈旧致浏览器假失败 → 先 build 再测（I20）。
+
+### 阶段 I：27 关铺满 / 加密重设计
+- src/levels/levels.ts：l01/l02/l03/l19 重排为 49/49 全铺满（可剥依赖链 motif）；l04–l18、l20–l27 依「解法射线安全格」勘察添加填充箭（每关 ≤12 箭），覆盖率 22~46 格不等；教学锚点（开关/⇄/接力/★/灯）位置与依赖关系保留。
+- scripts/validate-levels.ts：输出逐关覆盖率；无机关无灯关（除样例）覆盖 ≠ 宽×高 判失败。
+- 测试锚点迁移（断言强度不变）：硬编码 remaining 列表改为「初始剩余 − 已离场」计算比较；通关序列改为重放求解器解法（playSolution）或「教学锚点步 + finishLevel 补完填充箭」；AC32 用 clearUntil 保留 ⇄ 教学局面；AC33 撤销回接力步再撤销接力本身。
+- 修复：l03 两次互挡环、l09 r5a↔r45b 环、l06 m1/m2 重叠与 m2↔m4 环（I21）；填充箭直 len6 超上限改 6 格折线、4 弯改 3 弯、dir 与末段朝向不一致改朝向（I22）；AC32 clearUntil 保留集不可达致清空超时 → 保留集补 u6/u8（I23）。
+
+### 阶段 J：全量复测 + 证据刷新 + 本轮文档
+- 复测：166 单元 / 28 条重放（27 关+样例，含逐关覆盖率与耗时：合计 19.7ms、最慢 l10 4.0ms）/ 126 浏览器（42 用例 ×3 视口）/ build 全通过；evidence/test-results 四件刷新。
+- scripts/capture-evidence.mjs：07/17 通关序列改铺满后解法序；新增截图 18（l21 徽记直接调头、底部无调头按钮）；18 张全重截，目检 03（l01 49/49）/07/10（l19 49/49）/11（360 满宽）/16（灯亮）/17（全亮无下一关）/18。
+- docs：requirements §10、decisions D13、issues I19–I23、development-log 第三轮、acceptance 行文与第三轮说明、evidence-index、README 计数。
+- 本轮不做最终报告与整体收尾（用户指令：待游戏内容定稿后再做）。

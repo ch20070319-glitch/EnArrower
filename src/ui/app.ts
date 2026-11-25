@@ -65,7 +65,6 @@ export class App {
     $('btn-restart').addEventListener('click', () => this.restart());
     $('btn-hint').addEventListener('click', () => this.giveHint());
     $('btn-inspect').addEventListener('click', () => this.toggleInspect());
-    $('btn-turn').addEventListener('click', () => this.turnSelected());
     $('btn-fire').addEventListener('click', () => this.fireSelected());
     $('btn-sel-close').addEventListener('click', () => this.clearSelection());
     $('btn-next').addEventListener('click', () => this.nextLevel());
@@ -172,6 +171,7 @@ export class App {
     this.board.setCallbacks({
       onActivate: (id) => this.onArrowActivate(id),
       onHover: (id) => this.hoverPreview(id),
+      onTurn: (id) => this.turnById(id),
     });
     this.board.render(this.session.state);
     this.setStatus(level.goal, '');
@@ -303,7 +303,7 @@ export class App {
     this.selectedId = arrowId;
     this.board.setSelected(arrowId);
     this.updateSelBar();
-    this.setStatus('已选中 ⇄ 箭头：先看清出口方向，再选择调头或发射。', '');
+    this.setStatus('已选中 ⇄ 箭头：看清出口方向；点箭尾 ⇄ 徽记调头，或在此发射。', '');
   }
 
   private clearSelection(): void {
@@ -323,19 +323,21 @@ export class App {
     this.board.previewRay(sweptCells(this.session.level, eff));
   }
 
-  private turnSelected(): void {
-    if (this.locked || !this.session || !this.board || !this.selectedId) return;
-    const result = this.session.commitTurn(this.selectedId);
+  /** 第三轮：点击箭尾 ⇄ 徽记直接调头（无需先选中），一步可撤销。 */
+  private turnById(arrowId: string): void {
+    if (this.locked || !this.session || !this.board || this.inspectMode) return;
+    const result = this.session.commitTurn(arrowId);
     if (!result.ok) return;
     this.board.render(this.session.state);
-    this.updateSelBar();
+    if (this.selectedId === arrowId) this.updateSelBar();
     this.persist();
     this.updateControls();
     const eff = effectiveArrow(
-      this.session.level.arrows.find((a) => a.id === this.selectedId)!,
+      this.session.level.arrows.find((a) => a.id === arrowId)!,
       this.session.state,
     );
-    this.setStatus(`已调头：现在向${DIR_NAME[eff.dir]}。调头不移动、不触发闸门。`, 'good');
+    this.board.flashTurn(arrowId);
+    this.setStatus(`已调头 ${arrowId}：现在向${DIR_NAME[eff.dir]}。点箭身选中后发射。`, 'good');
   }
 
   private fireSelected(): void {
@@ -514,7 +516,6 @@ export class App {
     $<HTMLButtonElement>('btn-hint').disabled = this.locked;
     $<HTMLButtonElement>('btn-inspect').disabled = this.locked;
     $<HTMLButtonElement>('btn-game-back').disabled = this.locked;
-    $<HTMLButtonElement>('btn-turn').disabled = this.locked;
     $<HTMLButtonElement>('btn-fire').disabled = this.locked;
     $('game-count').textContent = `${this.session.state.remaining.length} 支`;
   }

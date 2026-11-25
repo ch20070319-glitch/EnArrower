@@ -23,6 +23,7 @@ function pathD(pts: { x: number; y: number }[]): string {
 export interface BoardCallbacks {
   onActivate: (arrowId: string) => void;
   onHover: (arrowId: string | null) => void;
+  onTurn: (arrowId: string) => void;
 }
 
 /**
@@ -44,7 +45,7 @@ export class BoardView {
   private timers = new Set<number>();
   private state: GameState | null = null;
   private selectedId: string | null = null;
-  private callbacks: BoardCallbacks = { onActivate: () => {}, onHover: () => {} };
+  private callbacks: BoardCallbacks = { onActivate: () => {}, onHover: () => {}, onTurn: () => {} };
 
   constructor(container: HTMLElement, level: LevelDef) {
     this.level = level;
@@ -210,7 +211,7 @@ export class BoardView {
       tabindex: '0',
       role: 'button',
       'aria-label': (def.reversible
-        ? `可调头箭头，当前向${DIR_NAME[arrow.dir]}，长度 ${arrow.len}，点击选中后可调头或发射`
+        ? `可调头箭头，当前向${DIR_NAME[arrow.dir]}，长度 ${arrow.len}：点箭身选中后发射，点尾部 ⇄ 徽记直接调头`
         : `箭头，向${DIR_NAME[arrow.dir]}，长度 ${arrow.len}${
             arrow.group ? `，${GROUP_SYMBOL[arrow.group]} 开关` : ''
           }，头部在第 ${arrow.head.x + 1} 列第 ${arrow.head.y + 1} 行`) +
@@ -229,14 +230,39 @@ export class BoardView {
       el('rect', { class: 'arrow-sheen', x: -back - 38, y: -6.5, width: back + 28, height: 4, rx: 2 }),
     );
     shape.appendChild(el('path', { class: 'arrow-head', d: 'M 40 0 L -8 -22 L -8 22 Z' }));
-    if (arrow.group || def.reversible || def.id === this.level.escort) {
+    if (def.reversible) {
+      // 第三轮：⇄ 徽记即调头按钮，独占尾格命中区；箭身其余格仍为选中/发射命中区。
+      const turn = el('g', {
+        class: 'arrow-turn',
+        tabindex: '0',
+        role: 'button',
+        'aria-label': `调头按钮：当前向${DIR_NAME[arrow.dir]}，点击原地翻转 180 度`,
+      });
+      turn.appendChild(el('circle', { class: 'arrow-turn-hit', cx: -back, cy: 0, r: 50 }));
+      turn.appendChild(el('circle', { class: 'arrow-badge arrow-badge--turn', cx: -back, cy: 0, r: 16 }));
+      const sym = el('text', { class: 'arrow-badge-sym arrow-badge-sym--turn', x: -back, y: 6 });
+      sym.textContent = '⇄';
+      turn.appendChild(sym);
+      turn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.callbacks.onTurn(arrow.id);
+      });
+      turn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          this.callbacks.onTurn(arrow.id);
+        }
+      });
+      shape.appendChild(turn);
+    } else if (arrow.group || def.id === this.level.escort) {
       const bx = -back / 2 - 24;
-      const isEscort = def.id === this.level.escort && !arrow.group && !def.reversible;
+      const isEscort = def.id === this.level.escort && !arrow.group;
       shape.appendChild(
         el('circle', { class: `arrow-badge${isEscort ? ' arrow-badge--escort' : ''}`, cx: bx, cy: 0, r: 10 }),
       );
       const sym = el('text', { class: 'arrow-badge-sym', x: bx, y: 5 });
-      sym.textContent = def.reversible ? '⇄' : arrow.group ? GROUP_SYMBOL[arrow.group] : '★';
+      sym.textContent = arrow.group ? GROUP_SYMBOL[arrow.group] : '★';
       shape.appendChild(sym);
     }
     node.appendChild(shape);
@@ -345,6 +371,14 @@ export class BoardView {
     if (!node) return;
     node.classList.add('is-hint');
     this.later(() => node.classList.remove('is-hint'), 3100);
+  }
+
+  /** 徽记调头后的原地脉冲反馈（不位移）。 */
+  flashTurn(arrowId: string): void {
+    const node = this.arrowNode(arrowId);
+    if (!node) return;
+    node.classList.add('is-turning');
+    this.later(() => node.classList.remove('is-turning'), 360);
   }
 
   /** 点击接力跟随箭：只高亮领头与虚线连接，不移动。 */

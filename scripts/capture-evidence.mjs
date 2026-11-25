@@ -130,12 +130,9 @@ await shot('02-home-mobile-360', { width: 360, height: 780, mobile: true });
   await page.evaluate((k) => localStorage.removeItem(k), KEY);
   await page.reload();
   await page.click('#btn-start');
-  for (const frag of ['向右，长度 1', '向下，长度 1', '向右，长度 2']) {
-    await page.evaluate((f) => {
-      const a = [...document.querySelectorAll('.arrow')].find((x) => x.getAttribute('aria-label')?.includes(f));
-      a?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    }, frag);
-    await page.waitForTimeout(650);
+  // 第三轮铺满后 l01 共 11 支箭：按求解器解法顺序清空
+  for (const id of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k']) {
+    await clickArrow(page, id, 650);
   }
   await page.waitForTimeout(400);
   await page.screenshot({ path: `${OUT}/07-win-desktop.png` });
@@ -186,6 +183,17 @@ await shot('02-home-mobile-360', { width: 360, height: 780, mobile: true });
   console.log('captured 12-game-l21-turn-selected');
 }
 
+// 第三轮：⇄ 徽记直接点击调头（不选中、底部无调头按钮）
+{
+  const { ctx, page } = await unlockedPage(1280, 900);
+  await openLevel(page, 21);
+  await page.click('.arrow-mover[data-arrow-id="r"] .arrow-turn');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${OUT}/18-game-l21-badge-turn.png` });
+  await ctx.close();
+  console.log('captured 18-game-l21-badge-turn');
+}
+
 // 接力虚线连接 l23（桌面）
 {
   const { ctx, page } = await unlockedPage(1280, 900);
@@ -223,7 +231,7 @@ await shot('02-home-mobile-360', { width: 360, height: 780, mobile: true });
   await openLevel(page, 26);
   await clickArrow(page, 'c');
   await clickArrow(page, 'r', 300);
-  await page.click('#btn-turn');
+  await page.click('.arrow-mover[data-arrow-id="r"] .arrow-turn');
   await page.click('#btn-fire');
   await page.waitForTimeout(800);
   await page.screenshot({ path: `${OUT}/16-game-l26-lamp-lit.png` });
@@ -240,7 +248,10 @@ await shot('02-home-mobile-360', { width: 360, height: 780, mobile: true });
   await clickArrow(page, 'r', 300);
   await page.click('#btn-fire');
   await page.waitForTimeout(800);
+  // 填充箭按解法顺序清空，d 需等 n6 让路
+  for (const id of ['n2', 'n1', 'n3', 'n4', 'n5', 'n6']) await clickArrow(page, id);
   await clickArrow(page, 'd');
+  await clickArrow(page, 'n7');
   await page.waitForTimeout(400);
   await page.screenshot({ path: `${OUT}/17-win-l27-all-lamps.png` });
   await ctx.close();

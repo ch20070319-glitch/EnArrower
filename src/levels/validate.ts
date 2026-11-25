@@ -27,7 +27,7 @@ export function validateLevel(level: LevelDef): ValidationError[] {
     ids.add(a.id);
     if (a.path) {
       const p = a.path;
-      if (p.length < 2 || p.length > 5) err(`箭头 ${a.id} 折线格数 ${p.length} 超出 2~5`);
+      if (p.length < 2 || p.length > 9) err(`箭头 ${a.id} 折线格数 ${p.length} 超出 2~9`);
       const seen = new Set<string>();
       let bends = 0;
       let prevDir: string | null = null;
@@ -46,15 +46,16 @@ export function validateLevel(level: LevelDef): ValidationError[] {
           prevDir = d;
         }
       }
-      if (bends > 1) err(`箭头 ${a.id} 折线弯折 ${bends} 处，第一轮最多 1 处直角弯`);
+      if (bends > 3) err(`箭头 ${a.id} 折线弯折 ${bends} 处，最多 3 处直角弯`);
       const last = p[p.length - 1];
       if (last.x !== a.head.x || last.y !== a.head.y) err(`箭头 ${a.id} head 与折线末端不一致`);
       if (headDirOf(a) !== a.dir) err(`箭头 ${a.id} dir 与折线末段朝向不一致`);
-    } else if (a.len < 1 || a.len > 3) {
-      err(`箭头 ${a.id} 长度 ${a.len} 超出 1~3`);
+    } else if (a.len < 1 || a.len > 5) {
+      err(`箭头 ${a.id} 长度 ${a.len} 超出 1~5`);
     }
     if (a.reversible) {
-      if (a.path) err(`箭头 ${a.id} 第一轮可调头箭头必须是直箭头`);
+      if (a.path) err(`箭头 ${a.id} 可调头箭头必须是直箭头`);
+      if (a.len < 2) err(`箭头 ${a.id} 可调头箭头长度至少 2（⇄ 徽记独占尾格命中区）`);
       if (a.group) err(`箭头 ${a.id} 可调头箭头不同时作为机关开关（徽记冲突）`);
     }
     for (const c of cellsOf(a)) {

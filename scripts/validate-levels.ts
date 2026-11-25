@@ -2,7 +2,7 @@
  * 关卡自动验证：数据校验 + 求解器搜索 + 用规则引擎逐步重放解法。
  * 运行：npm run validate:levels
  */
-import { applyMove, applyRelay, applyTurn, checkMove, initialState, isWin } from '../src/core/rules';
+import { applyMove, applyRelay, applyTurn, cellsOf, checkMove, initialState, isWin } from '../src/core/rules';
 import { solve } from '../src/core/solver';
 import { LEVELS, SAMPLE_LEVEL } from '../src/levels/levels';
 import { validateLevel } from '../src/levels/validate';
@@ -72,8 +72,17 @@ for (const level of [...LEVELS, SAMPLE_LEVEL]) {
   const pretty = result.solution
     .map((op) => (op.kind === 'turn' ? `⇄${op.arrowId}` : op.kind === 'relay' ? `${op.arrowId}⇒` : op.arrowId))
     .join(' → ');
+  // 第三轮：无机关无灯的关卡箭头必须铺满全部格子；有门/灯关报告覆盖率（尽量加密）。
+  const covered = new Set(level.arrows.flatMap((a) => cellsOf(a).map((c) => `${c.x},${c.y}`))).size;
+  const cells = level.width * level.height;
+  const mustFill = level.mechanisms.length === 0 && (level.lamps ?? []).length === 0 && level.id !== SAMPLE_LEVEL.id;
+  if (mustFill && covered !== cells) {
+    failed++;
+    console.error(`[未铺满] ${level.id} 覆盖 ${covered}/${cells} 格（无机关无灯关必须铺满）`);
+    continue;
+  }
   console.log(
-    `[通过] ${level.id} ${level.name}｜${level.arrows.length} 箭｜解法 ${pretty}｜搜索 ${result.visited} 状态｜耗时 ${ms.toFixed(1)}ms`,
+    `[通过] ${level.id} ${level.name}｜${level.arrows.length} 箭｜覆盖 ${covered}/${cells} 格｜解法 ${pretty}｜搜索 ${result.visited} 状态｜耗时 ${ms.toFixed(1)}ms`,
   );
 }
 

@@ -47,7 +47,9 @@ describe('存档读写', () => {
     expect(loaded.notice).toBeNull();
     expect(loaded.data.completed).toEqual(['l01']);
     expect(loaded.data.unlocked).toContain('l02');
-    expect(loaded.data.current?.state.remaining).toEqual(['b', 'c']);
+    expect(loaded.data.current?.state.remaining).toEqual(
+      initialState(level).remaining.filter((id) => id !== 's'),
+    );
     expect(loaded.data.current?.history).toHaveLength(1);
     const restored = new GameSession(
       level,
@@ -56,7 +58,7 @@ describe('存档读写', () => {
     );
     expect(restored.canUndo).toBe(true);
     restored.undo();
-    expect(restored.state.remaining).toEqual(['s', 'b', 'c']);
+    expect(restored.state.remaining).toEqual(initialState(level).remaining);
   });
 
   it('损坏 JSON 安全回退并提示', () => {
