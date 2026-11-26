@@ -1,14 +1,32 @@
 import { GameSession } from '../core/session';
-import { allLampsLit, applyMove, checkRelay, effectiveArrow, relayOf, sweptCells } from '../core/rules';
+import {
+  allLampsLit,
+  applyMove,
+  checkRelay,
+  effectiveArrow,
+  relayOf,
+  stateKey,
+  sweptCells,
+} from '../core/rules';
 import { hint } from '../core/solver';
-import { Dir, GROUP_SYMBOL } from '../core/types';
-import { LEVELS, levelById } from '../levels/levels';
+import { Dir, GROUP_SYMBOL, LevelDef } from '../core/types';
+import {
+  CHAPTERS,
+  DISPLAY_ORDER,
+  LEVELS,
+  TUTORIAL_LEVEL,
+  displayNumber,
+  levelById,
+  nextLevelId,
+  orderedLevels,
+} from '../levels/levels';
 import {
   CurrentSave,
   SaveData,
   StorageLike,
   loadSave,
   recordCompletion,
+  recordLampBest,
   writeSave,
 } from '../storage/save';
 import { BoardView } from './board';
@@ -37,6 +55,10 @@ function detectStorage(): StorageLike | null {
   }
 }
 
+function resolveLevel(id: string): LevelDef | undefined {
+  return id === TUTORIAL_LEVEL.id ? TUTORIAL_LEVEL : levelById(id);
+}
+
 export class App {
   private storage: StorageLike | null;
   private save: SaveData;
@@ -48,6 +70,10 @@ export class App {
   private winShown = false;
   private storageWarned = false;
   private toastTimer = 0;
+  private homeAction: () => void = () => {};
+  /** 分级提示：同一局面第一次给观察线索，第二次才给具体操作；局面变化即重置。 */
+  private hintKey: string | null = null;
+  private hintStage = 0;
 
   constructor() {
     this.storage = detectStorage();
@@ -55,9 +81,11 @@ export class App {
     this.save = loaded.data;
     if (loaded.notice) this.toast(loaded.notice);
 
-    $('btn-start').addEventListener('click', () => this.continueGame());
+    $('btn-start').addEventListener('click', () => this.homeAction());
     $('btn-levels').addEventListener('click', () => this.showLevels());
     $('btn-levels-back').addEventListener('click', () => this.showHome());
+    $('btn-tutorial-replay').addEventListener('click', () => this.startLevel(TUTORIAL_LEVEL.id));
+    $('btn-tutorial-skip').addEventListener('click', () => this.skipTutorial());
     $('btn-game-back').addEventListener('click', () => {
       if (!this.locked) this.showLevels();
     });
@@ -90,66 +118,121 @@ export class App {
     window.scrollTo({ top: 0 });
   }
 
+  private formalDoneCount(): number {
+    return this.save.completed.filter((id) => levelById(id) !== undefined).length;
+  }
+
+  /** 首页主按钮五态：文字与点击去向一致。 */
   private showHome(): void {
     this.hideWin();
     this.showScreen('home');
     const cur = this.save.current;
-    const level = cur ? levelById(cur.levelId) : undefined;
-    $('btn-start').textContent = level ? `继续 · 第 ${level.index} 关` : '开始游戏';
+    const curLevel = cur ? resolveLevel(cur.levelId) : undefined;
+    const doneCount = this.formalDoneCount();
+    const btn = $('btn-start');
+    if (cur && curLevel) {
+      if (curLevel.id === TUTORIAL_LEVEL.id) {
+        btn.textContent = '继续新手教学';
+        this.homeAction = () => this.startLevel(cur.levelId, cur);
+      } else if (this.save.completed.includes(curLevel.id)) {
+        btn.textContent = `继续重玩第 ${displayNumber(curLevel)} 关`;
+        this.homeAction = () => this.startLevel(cur.levelId, cur);
+      } else {
+        btn.textContent = `继续第 ${displayNumber(curLevel)} 关`;
+        this.homeAction = () => this.startLevel(cur.levelId, cur);
+      }
+    } else if (doneCount === LEVELS.length) {
+      btn.textContent = '回顾关卡';
+      this.homeAction = () => this.showLevels();
+    } else if (doneCount === 0 && !this.save.tutorialDone) {
+      btn.textContent = '开始游戏';
+      this.homeAction = () => this.startLevel(TUTORIAL_LEVEL.id);
+    } else {
+      const next = orderedLevels().find(
+        (l) => this.save.unlocked.includes(l.id) && !this.save.completed.includes(l.id),
+      );
+      if (next) {
+        btn.textContent = `进入第 ${displayNumber(next)} 关`;
+        this.homeAction = () => this.startLevel(next.id);
+      } else {
+        btn.textContent = '回顾关卡';
+        this.homeAction = () => this.showLevels();
+      }
+    }
     $('home-progress').textContent =
-      this.save.completed.length > 0
-        ? `已完成 ${this.save.completed.length} / ${LEVELS.length} 关`
+      doneCount > 0
+        ? `已完成 ${doneCount} / ${LEVELS.length} 关`
         : `${LEVELS.length} 个原创关卡，从第一支箭头开始。`;
   }
 
   private showLevels(): void {
     this.hideWin();
     this.showScreen('levels');
-    $('levels-progress').textContent = `${this.save.completed.length} / ${LEVELS.length}`;
-    const grid = $('level-grid');
-    grid.innerHTML = '';
-    for (const level of LEVELS) {
-      const done = this.save.completed.includes(level.id);
-      const unlocked = this.save.unlocked.includes(level.id);
-      const tile = document.createElement('button');
-      tile.type = 'button';
-      tile.className = `level-tile ${
-        done ? 'level-tile--done' : unlocked ? 'level-tile--open' : 'level-tile--locked'
-      }`;
-      tile.style.animationDelay = `${Math.min(level.index * 0.04, 0.4)}s`;
-      tile.disabled = !unlocked;
-      tile.setAttribute(
-        'aria-label',
-        `第 ${level.index} 关 ${level.name}，${done ? '已完成' : unlocked ? '可挑战' : '未解锁'}`,
-      );
-      tile.innerHTML = `
-        <span class="level-num">${String(level.index).padStart(2, '0')}</span>
-        <span class="level-name">${level.name}</span>
-        <span class="level-state">${done ? '✓ 已完成' : unlocked ? '可挑战' : '未解锁'}</span>
-        ${
-          unlocked
-            ? ''
-            : '<svg class="level-lock" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3M5 10h14v10H5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>'
+    $('levels-progress').textContent = `${this.formalDoneCount()} / ${LEVELS.length}`;
+    const root = $('level-grid');
+    root.innerHTML = '';
+    let pos = 0;
+    for (const chapter of CHAPTERS) {
+      const section = document.createElement('section');
+      section.className = 'chapter';
+      section.setAttribute('data-chapter', chapter.id);
+      const title = document.createElement('h3');
+      title.className = 'chapter-title';
+      title.textContent = chapter.title;
+      const blurb = document.createElement('p');
+      blurb.className = 'chapter-blurb';
+      blurb.textContent = chapter.blurb;
+      const grid = document.createElement('div');
+      grid.className = 'level-grid';
+      for (const level of orderedLevels().filter((l) => l.chapter === chapter.id)) {
+        pos++;
+        const done = this.save.completed.includes(level.id);
+        const unlocked = this.save.unlocked.includes(level.id);
+        const lampBest = (this.save.lampBest ?? []).includes(level.id);
+        const tile = document.createElement('button');
+        tile.type = 'button';
+        tile.setAttribute('data-level-id', level.id);
+        tile.className = `level-tile ${
+          done ? 'level-tile--done' : unlocked ? 'level-tile--open' : 'level-tile--locked'
         }`;
-      if (unlocked) tile.addEventListener('click', () => this.startLevel(level.id));
-      grid.appendChild(tile);
+        tile.style.animationDelay = `${Math.min(pos * 0.04, 0.4)}s`;
+        tile.disabled = !unlocked;
+        tile.setAttribute(
+          'aria-label',
+          `第 ${displayNumber(level)} 关 ${level.name}，${done ? '已完成' : unlocked ? '可挑战' : '未解锁'}${
+            lampBest ? '，曾点亮全部小屋' : ''
+          }`,
+        );
+        tile.innerHTML = `
+          <span class="level-num">${String(displayNumber(level)).padStart(2, '0')}</span>
+          <span class="level-name">${level.name}</span>
+          <span class="level-state">${done ? '✓ 已完成' : unlocked ? '可挑战' : '未解锁'}</span>
+          ${lampBest ? '<span class="level-best">小屋全亮</span>' : ''}
+          ${
+            unlocked
+              ? ''
+              : '<svg class="level-lock" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V7a5 5 0 0 1 10 0v3M5 10h14v10H5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>'
+          }`;
+        if (unlocked) tile.addEventListener('click', () => this.startLevel(level.id));
+        grid.appendChild(tile);
+      }
+      section.appendChild(title);
+      section.appendChild(blurb);
+      section.appendChild(grid);
+      root.appendChild(section);
     }
   }
 
   /* ---------- 关卡运行 ---------- */
 
-  private continueGame(): void {
-    const cur = this.save.current;
-    if (cur && levelById(cur.levelId)) {
-      this.startLevel(cur.levelId, cur);
-      return;
-    }
-    const next = LEVELS.find((l) => this.save.unlocked.includes(l.id) && !this.save.completed.includes(l.id));
-    this.startLevel((next ?? LEVELS[0]).id);
+  private skipTutorial(): void {
+    if (this.locked || !this.session || this.session.level.id !== TUTORIAL_LEVEL.id) return;
+    this.save.tutorialDone = true;
+    this.startLevel(DISPLAY_ORDER[0]);
   }
 
   private startLevel(levelId: string, resume?: CurrentSave | null): void {
-    const level = levelById(levelId);
+    const level = resolveLevel(levelId);
     if (!level) return;
     this.board?.destroy();
     this.session =
@@ -159,13 +242,20 @@ export class App {
     this.locked = false;
     this.inspectMode = false;
     this.selectedId = null;
+    this.hintKey = null;
+    this.hintStage = 0;
     $('sel-bar').hidden = true;
     $('btn-inspect').setAttribute('aria-pressed', 'false');
+    $('btn-tutorial-skip').hidden = level.id !== TUTORIAL_LEVEL.id;
     this.hideWin();
     this.showScreen('game');
 
-    $('game-title').textContent = `第 ${level.index} 关 · ${level.name}`;
+    $('game-title').textContent =
+      level.id === TUTORIAL_LEVEL.id ? level.name : `第 ${displayNumber(level)} 关 · ${level.name}`;
     $('game-goal').textContent = level.goal;
+    const intro = $('game-intro');
+    intro.textContent = level.intro ?? '';
+    intro.hidden = !level.intro;
     $('board-wrap').classList.toggle('board-wrap--tall', level.height > level.width);
     this.board = new BoardView($('board-wrap'), level);
     this.board.setCallbacks({
@@ -174,7 +264,8 @@ export class App {
       onTurn: (id) => this.turnById(id),
     });
     this.board.render(this.session.state);
-    this.setStatus(level.goal, '');
+    // 状态栏只反馈玩家操作：入场时留空，目标与玩法说明各自独立显示。
+    this.setStatus('', '');
     this.updateControls();
     this.persist();
     if (this.session.won) this.showWin();
@@ -208,12 +299,12 @@ export class App {
     if (!relay) return;
     const check = checkRelay(this.session.level, this.session.state, leaderId);
     if (!check.ok) {
-      this.board.flashBlocked(check.failedId ?? leaderId, check.blocker ?? { kind: 'arrow' });
       const who = check.failedId ?? leaderId;
+      this.board.flashRelayBlocked(leaderId, who, check.blocker ?? { kind: 'arrow' });
       const msg =
         check.blocker?.kind === 'gate'
-          ? `接力被挡住了：${GROUP_SYMBOL[check.blocker.group]} 闸门关闭中，${who} 过不去。先开门再启动，两支都留在原地。`
-          : `接力被挡住了：${who} 的路线上有箭头。两支都留在原地，换个顺序试试。`;
+          ? `接力没启动：${who} 被 ${GROUP_SYMBOL[check.blocker.group]} 闸门挡住，整队留在原地。先开门再试。`
+          : `接力没启动：${who} 被箭头挡住，整队留在原地。先疏通它的路。`;
       this.setStatus(msg, 'warn');
       return;
     }
@@ -222,6 +313,7 @@ export class App {
     this.updateControls();
     this.board.clearPreview();
     this.board.clearRay();
+    this.board.holdRelayLink(leaderId);
     await this.board.animateExit(relay.leader, reducedMotion());
     const mid = applyMove(this.session.level, this.session.state, relay.leader).state;
     this.board.render(mid);
@@ -229,6 +321,7 @@ export class App {
 
     const result = this.session.commitRelay(leaderId);
     this.board.render(this.session.state);
+    this.board.clearRelayHold();
     this.persist();
     this.updateControls();
 
@@ -242,8 +335,8 @@ export class App {
     this.locked = false;
     this.setStatus(
       result.toggledGroup
-        ? `接力完成：${relay.leader}、${relay.follower} 都已离场，${GROUP_SYMBOL[result.toggledGroup]} 机关已切换。`
-        : `接力完成：${relay.leader}、${relay.follower} 都已离场。`,
+        ? `接力完成：${relay.leader} 带着 ${relay.follower} 一起离场，${GROUP_SYMBOL[result.toggledGroup]} 机关已切换。`
+        : `接力完成：${relay.leader} 带着 ${relay.follower} 一起离场。`,
       'good',
     );
     this.updateControls();
@@ -369,12 +462,34 @@ export class App {
     this.setStatus('已重开本关，回到初始布局。', '');
   }
 
+  /** 分级提示：同一局面第一次只给观察线索，第二次才指出具体操作；局面变化后重新分级。 */
   private giveHint(): void {
     if (this.locked || !this.session || !this.board) return;
-    const h = hint(this.session.level, this.session.state);
+    const level = this.session.level;
+    const key = stateKey(this.session.state);
+    if (key !== this.hintKey) {
+      this.hintKey = key;
+      this.hintStage = 0;
+    }
+    const h = hint(level, this.session.state);
+    if (h.kind === 'dead-end') {
+      this.setStatus('当前顺序已无法通关，请撤销或重开。', 'warn');
+      for (const id of ['btn-undo', 'btn-restart']) {
+        const btn = $(id);
+        btn.classList.remove('btn--nudge');
+        void btn.offsetWidth;
+        btn.classList.add('btn--nudge');
+      }
+      return;
+    }
+    if (h.kind === 'won') return;
+    if (this.hintStage === 0) {
+      this.hintStage = 1;
+      this.setStatus(this.observationClue(h), '');
+      return;
+    }
     if (h.kind === 'move') {
       this.board.flashHint(h.arrowId);
-      const level = this.session.level;
       const arrow = level.arrows.find((a) => a.id === h.arrowId)!;
       const text = arrow.group
         ? `提示：先让开关 ${h.arrowId} 离场，它会切换 ${arrow.group === 'diamond' ? '◇' : '○'} 闸门（不会自动移动）。`
@@ -388,15 +503,32 @@ export class App {
     } else if (h.kind === 'relay') {
       this.board.flashRelay(h.arrowId);
       this.setStatus(`提示：启动接力 ${h.arrowId}，它会带着跟随箭一起离场。`, 'good');
-    } else if (h.kind === 'dead-end') {
-      this.setStatus('当前顺序已无法通关，请撤销或重开。', 'warn');
-      for (const id of ['btn-undo', 'btn-restart']) {
-        const btn = $(id);
-        btn.classList.remove('btn--nudge');
-        void btn.offsetWidth;
-        btn.classList.add('btn--nudge');
-      }
     }
+  }
+
+  private observationClue(h: ReturnType<typeof hint>): string {
+    const level = this.session!.level;
+    if (h.kind === 'relay') {
+      const relay = level.relays?.find((r) => r.leader === h.arrowId);
+      return `观察：虚线连着的两支是一队，搭档 ${relay?.follower ?? ''} 也需要一条畅通的路。再看看谁挡着它。`;
+    }
+    if (h.kind === 'turn') {
+      return '观察：⇄ 箭头可以原地调头。看看另一个方向的出口是不是更畅通。';
+    }
+    if (h.kind === 'move') {
+      const arrow = level.arrows.find((a) => a.id === h.arrowId)!;
+      if (arrow.group) {
+        return `观察：带 ${GROUP_SYMBOL[arrow.group]} 的开关离场会切换同组闸门。先看清哪些门还关着。`;
+      }
+      if (level.escort === h.arrowId) {
+        return '观察：★ 是护送目标，把它送出棋盘就赢，其他箭头可以留在场上。';
+      }
+      if (arrow.path) {
+        return '观察：折线箭头像绳子，头部先出、弯折处依次跟出；出口射线畅通才能走。';
+      }
+      return '观察：找找哪支箭头的出口方向上没有其他箭头或关闭的闸门。';
+    }
+    return '观察：看看棋盘上还剩什么。';
   }
 
   /* ---------- 机关预览 ---------- */
@@ -455,22 +587,36 @@ export class App {
     if (!this.session || this.winShown) return;
     this.winShown = true;
     const level = this.session.level;
-    const next = LEVELS.find((l) => l.index === level.index + 1);
+    const isTutorial = level.id === TUTORIAL_LEVEL.id;
+    const nextId = isTutorial ? DISPLAY_ORDER[0] : nextLevelId(level.id);
+    const next = nextId ? levelById(nextId) : undefined;
     const allDone = LEVELS.every((l) => this.save.completed.includes(l.id));
-    $('win-detail').textContent = allDone
-      ? `第 ${level.index} 关 · ${level.name} — 你已疏通全部 ${LEVELS.length} 关！`
-      : next
-        ? `第 ${level.index} 关 · ${level.name} — 已解锁第 ${next.index} 关「${next.name}」。`
-        : `第 ${level.index} 关 · ${level.name}。`;
+    const label = isTutorial ? level.name : `第 ${displayNumber(level)} 关 · ${level.name}`;
+    $('win-detail').textContent = isTutorial
+      ? `教学完成！移走挡路的箭头，道路就通了。接下来进入第 1 关「${next?.name ?? ''}」。`
+      : allDone
+        ? `${label} — 你已疏通全部 ${LEVELS.length} 关！`
+        : next
+          ? `${label} — 已解锁第 ${displayNumber(next)} 关「${next.name}」。`
+          : `${label}。`;
     const nextBtn = $<HTMLButtonElement>('btn-next');
     nextBtn.hidden = !next;
     nextBtn.textContent = next ? `下一关 · ${next.name}` : '下一关';
     const lampCount = level.lamps?.length ?? 0;
     if (lampCount > 0) {
       const litCount = this.session.state.lit.length;
-      $('win-detail').textContent += allLampsLit(level, this.session.state)
-        ? ' 点亮小屋：所有灯都亮了！'
-        : ` 还有 ${lampCount - litCount} 盏灯没亮（不影响通关）。`;
+      if (allLampsLit(level, this.session.state)) {
+        recordLampBest(this.save, level.id);
+        this.persist();
+        $('win-detail').textContent += ' 可选挑战达成：小屋全部点亮！';
+      } else {
+        $('win-detail').textContent += ` 还有 ${lampCount - litCount} 盏灯没亮（可选挑战，不影响通关）。`;
+      }
+    }
+    if (isTutorial) {
+      // 教学完成后不再占据「进行中」存档，首页直接进入正式第 1 关。
+      this.save.current = null;
+      writeSave(this.storage, this.save);
     }
     $('win-overlay').hidden = false;
     this.setStatus(
@@ -487,8 +633,9 @@ export class App {
 
   private nextLevel(): void {
     if (!this.session) return;
-    const next = LEVELS.find((l) => l.index === this.session!.level.index + 1);
-    if (next) this.startLevel(next.id);
+    const id = this.session.level.id;
+    const nextId = id === TUTORIAL_LEVEL.id ? DISPLAY_ORDER[0] : nextLevelId(id);
+    if (nextId) this.startLevel(nextId);
   }
 
   /* ---------- 键盘 ---------- */
@@ -518,6 +665,23 @@ export class App {
     $<HTMLButtonElement>('btn-game-back').disabled = this.locked;
     $<HTMLButtonElement>('btn-fire').disabled = this.locked;
     $('game-count').textContent = `${this.session.state.remaining.length} 支`;
+    this.updateOptionalGoal();
+  }
+
+  /** 点灯是可选挑战：进度即时更新（点亮/撤销/重开），漏灯照样通关。 */
+  private updateOptionalGoal(): void {
+    if (!this.session) return;
+    const level = this.session.level;
+    const lamps = level.lamps ?? [];
+    const node = $('game-optional');
+    if (lamps.length === 0) {
+      node.hidden = true;
+      return;
+    }
+    const lit = this.session.state.lit.length;
+    node.hidden = false;
+    node.textContent = `可选 · 点亮小屋 ${lit}/${lamps.length}`;
+    node.classList.toggle('subbar-optional--done', allLampsLit(level, this.session.state));
   }
 
   private setStatus(text: string, tone: '' | 'warn' | 'good'): void {

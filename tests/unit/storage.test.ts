@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { initialState } from '../../src/core/rules';
 import { GameSession } from '../../src/core/session';
-import { LEVELS } from '../../src/levels/levels';
+import { LEVELS, TUTORIAL_LEVEL, displayNumber } from '../../src/levels/levels';
 import {
   SAVE_KEY,
   SCHEMA_VERSION,
@@ -9,6 +9,7 @@ import {
   defaultSave,
   loadSave,
   recordCompletion,
+  recordLampBest,
   writeSave,
 } from '../../src/storage/save';
 
@@ -232,5 +233,90 @@ describe('存档读写', () => {
     const result = loadSave(memoryStorage(JSON.stringify(data)));
     expect(result.data.current).toBeNull();
     expect(result.notice).toContain('不匹配');
+  });
+});
+
+describe('第六轮：教学 / 点灯最佳成绩 / 显示顺序重排兼容', () => {
+  it('旧存档无 tutorialDone/lampBest 字段正常加载，默认未完成、无全亮记录', () => {
+    const old = {
+      schemaVersion: SCHEMA_VERSION,
+      completed: ['l01'],
+      unlocked: ['l01', 'l02'],
+      current: null,
+    };
+    const result = loadSave(memoryStorage(JSON.stringify(old)));
+    expect(result.notice).toBeNull();
+    expect(result.data.tutorialDone).toBe(false);
+    expect(result.data.lampBest).toEqual([]);
+    expect(result.data.completed).toEqual(['l01']);
+  });
+
+  it('教学完成只记 tutorialDone，不增加正式完成数', () => {
+    const data = defaultSave();
+    recordCompletion(data, TUTORIAL_LEVEL.id);
+    expect(data.tutorialDone).toBe(true);
+    expect(data.completed).toEqual([]);
+    expect(data.unlocked).toEqual(['l01']);
+  });
+
+  it('教学进行中的存档可恢复，且不污染解锁列表', () => {
+    const data = defaultSave();
+    const session = new GameSession(TUTORIAL_LEVEL);
+    session.commitMove('C');
+    data.current = { levelId: 'tutorial', state: session.state, history: session.history };
+    const storage = memoryStorage();
+    expect(writeSave(storage, data).ok).toBe(true);
+    const loaded = loadSave(storage);
+    expect(loaded.notice).toBeNull();
+    expect(loaded.data.current?.levelId).toBe('tutorial');
+    expect(loaded.data.unlocked).not.toContain('tutorial');
+    const again = loadSave(memoryStorage(JSON.stringify(loaded.data)));
+    expect(again.notice).toBeNull();
+  });
+
+  it('解锁按显示顺序：通关 l02（显示 2）解锁 l19（显示 3），而非 l03', () => {
+    const data = defaultSave();
+    recordCompletion(data, 'l02');
+    expect(data.unlocked).toContain('l19');
+    expect(data.unlocked).not.toContain('l03');
+    recordCompletion(data, 'l21');
+    expect(data.unlocked).toContain('l03');
+  });
+
+  it('重排前旧存档的解锁缺口被补齐：旧序完成到 l06 则新序前 8 位全解锁', () => {
+    const old = {
+      schemaVersion: SCHEMA_VERSION,
+      completed: ['l01', 'l02', 'l03', 'l04', 'l05', 'l06'],
+      unlocked: ['l01', 'l02', 'l03', 'l04', 'l05', 'l06', 'l07'],
+      current: null,
+    };
+    const result = loadSave(memoryStorage(JSON.stringify(old)));
+    expect(result.notice).toBeNull();
+    // 旧存档解锁到 l07（新显示第 9 位），前 9 位（含前移的 l19/l21）全部可玩。
+    const posOf = (id: string) => result.data.unlocked.includes(id);
+    for (const id of ['l01', 'l02', 'l19', 'l21', 'l03', 'l04', 'l05', 'l06', 'l07']) {
+      expect(posOf(id)).toBe(true);
+    }
+    expect(result.data.completed).toEqual(old.completed);
+    expect(displayNumber(LEVELS.find((l) => l.id === 'l19')!)).toBe(3);
+  });
+
+  it('全亮最佳成绩只增不减：漏灯重玩不覆盖', () => {
+    const data = defaultSave();
+    recordLampBest(data, 'l26');
+    recordLampBest(data, 'l26');
+    recordCompletion(data, 'l26');
+    expect(data.lampBest).toEqual(['l26']);
+    const storage = memoryStorage();
+    expect(writeSave(storage, data).ok).toBe(true);
+    const loaded = loadSave(storage);
+    expect(loaded.data.lampBest).toEqual(['l26']);
+  });
+
+  it('非法 lampBest（不存在的关卡 id）按损坏回退', () => {
+    const data = { ...defaultSave(), lampBest: ['nope'] };
+    const result = loadSave(memoryStorage(JSON.stringify(data)));
+    expect(result.notice).toContain('损坏');
+    expect(result.data.lampBest).toEqual([]);
   });
 });

@@ -1,5 +1,7 @@
 export type Dir = 'up' | 'down' | 'left' | 'right';
 export type GroupId = 'diamond' | 'circle';
+/** 选关页教学章节；与关卡 ID、显示顺序相互独立。 */
+export type ChapterId = 'basic' | 'gate' | 'special';
 
 export interface Cell {
   x: number;
@@ -33,9 +35,13 @@ export interface RelayDef {
 
 export interface LevelDef {
   id: string;
-  index: number;
+  /** 教学章节（选关页分组）；显示顺序由 DISPLAY_ORDER 决定，与 id 解耦。 */
+  chapter: ChapterId;
   name: string;
+  /** 目标栏：只说明本关要完成什么，不透露操作顺序。 */
   goal: string;
+  /** 开场一句机制教学（可选），与目标栏、状态栏互不重复。 */
+  intro?: string;
   width: number;
   height: number;
   arrows: ArrowDef[];

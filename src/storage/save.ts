@@ -1,6 +1,6 @@
 import { cloneState } from '../core/rules';
 import { GameState, GroupId, LevelDef } from '../core/types';
-import { LEVELS, levelById } from '../levels/levels';
+import { DISPLAY_ORDER, LEVELS, TUTORIAL_LEVEL, levelById, nextLevelId } from '../levels/levels';
 
 export const SAVE_KEY = 'enarrower.save';
 export const SCHEMA_VERSION = 1;
@@ -16,6 +16,9 @@ export interface SaveData {
   completed: string[];
   unlocked: string[];
   current: CurrentSave | null;
+  /** 可选字段（schemaVersion 保持 1）：教学是否完成/跳过；曾全亮通关的关卡。 */
+  tutorialDone?: boolean;
+  lampBest?: string[];
 }
 
 export interface StorageLike {
@@ -30,7 +33,14 @@ export function defaultSave(): SaveData {
     completed: [],
     unlocked: [LEVELS[0].id],
     current: null,
+    tutorialDone: false,
+    lampBest: [],
   };
+}
+
+/** 存档里 current 可指向教学关；正式进度列表只认 27 关。 */
+function levelForSave(id: string): LevelDef | undefined {
+  return id === TUTORIAL_LEVEL.id ? TUTORIAL_LEVEL : levelById(id);
 }
 
 function validState(v: unknown, level: LevelDef): v is GameState {
@@ -115,14 +125,27 @@ export function loadSave(storage: StorageLike | null): LoadResult {
       completed: parsed.completed,
       unlocked: parsed.unlocked,
       current: null,
+      tutorialDone: parsed.tutorialDone === true,
+      lampBest: [],
     };
+    if (parsed.lampBest !== undefined) {
+      if (!validIdList(parsed.lampBest)) {
+        return { data: defaultSave(), notice: '存档数据损坏，已重新开始。' };
+      }
+      data.lampBest = parsed.lampBest;
+    }
     if (!data.unlocked.includes(LEVELS[0].id)) data.unlocked.push(LEVELS[0].id);
     for (const id of data.completed) {
       if (!data.unlocked.includes(id)) data.unlocked.push(id);
     }
+    // 显示顺序重排后补齐解锁缺口：旧存档解锁到第 N 位，则前 N 位全部可玩（只增不减）。
+    const maxPos = Math.max(...data.unlocked.map((id) => DISPLAY_ORDER.indexOf(id)));
+    for (const id of DISPLAY_ORDER.slice(0, maxPos + 1)) {
+      if (!data.unlocked.includes(id)) data.unlocked.push(id);
+    }
     if (parsed.current !== null && parsed.current !== undefined) {
       const cur = parsed.current as Record<string, unknown>;
-      const level = typeof cur.levelId === 'string' ? levelById(cur.levelId) : undefined;
+      const level = typeof cur.levelId === 'string' ? levelForSave(cur.levelId) : undefined;
       if (
         !level ||
         !validState(cur.state, level) ||
@@ -136,7 +159,9 @@ export function loadSave(storage: StorageLike | null): LoadResult {
         state: cloneState(cur.state as GameState),
         history: (cur.history as GameState[]).map(cloneState),
       };
-      if (!data.unlocked.includes(level.id)) data.unlocked.push(level.id);
+      if (level.id !== TUTORIAL_LEVEL.id && !data.unlocked.includes(level.id)) {
+        data.unlocked.push(level.id);
+      }
     }
     return { data, notice: null };
   } catch {
@@ -161,15 +186,22 @@ export function writeSave(storage: StorageLike | null, data: SaveData): WriteRes
   }
 }
 
-/** 通关后更新完成与解锁记录（解锁下一关）。 */
+/** 通关后更新完成与解锁记录（按显示顺序解锁下一关）。教学关只记 tutorialDone。 */
 export function recordCompletion(data: SaveData, levelId: string): void {
+  if (levelId === TUTORIAL_LEVEL.id) {
+    data.tutorialDone = true;
+    return;
+  }
   if (!data.completed.includes(levelId)) data.completed.push(levelId);
   if (!data.unlocked.includes(levelId)) data.unlocked.push(levelId);
-  const level = levelById(levelId);
-  if (level) {
-    const next = LEVELS.find((l) => l.index === level.index + 1);
-    if (next && !data.unlocked.includes(next.id)) data.unlocked.push(next.id);
-  }
+  const next = nextLevelId(levelId);
+  if (next && !data.unlocked.includes(next)) data.unlocked.push(next);
+}
+
+/** 全亮通关记入最佳成绩；之后的漏灯重玩不覆盖。 */
+export function recordLampBest(data: SaveData, levelId: string): void {
+  const best = data.lampBest ?? (data.lampBest = []);
+  if (!best.includes(levelId)) best.push(levelId);
 }
 
 export function groupOpen(state: GameState, group: GroupId): boolean {

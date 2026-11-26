@@ -17,7 +17,7 @@ import {
 } from '../../src/core/rules';
 import { solve } from '../../src/core/solver';
 import type { GameState, LevelDef } from '../../src/core/types';
-import { LEVELS } from '../../src/levels/levels';
+import { LEVELS, DISPLAY_ORDER, TUTORIAL_LEVEL, displayNumber, orderedLevels } from '../../src/levels/levels';
 import { validateLevel } from '../../src/levels/validate';
 
 /** 从当前状态用求解器清空剩余箭头（加密后关卡含填充箭，部分清空不等于通关）。 */
@@ -37,14 +37,19 @@ function finish(level: LevelDef, from: GameState): GameState {
 }
 
 describe('27 个正式关卡', () => {
-  it('数量与编号连续', () => {
+  it('数量与编号连续（显示顺序与 id 解耦）', () => {
     expect(LEVELS).toHaveLength(27);
-    expect(LEVELS.map((l) => l.index)).toEqual(Array.from({ length: 27 }, (_, i) => i + 1));
     expect(new Set(LEVELS.map((l) => l.id)).size).toBe(27);
+    expect(DISPLAY_ORDER).toHaveLength(27);
+    expect([...DISPLAY_ORDER].sort()).toEqual(LEVELS.map((l) => l.id).sort());
+    expect(orderedLevels().map((l) => displayNumber(l))).toEqual(
+      Array.from({ length: 27 }, (_, i) => i + 1),
+    );
+    expect(LEVELS.map((l) => l.id)).not.toContain(TUTORIAL_LEVEL.id);
   });
 
-  for (const level of LEVELS) {
-    describe(`第 ${level.index} 关 ${level.name}`, () => {
+  for (const level of orderedLevels()) {
+    describe(`第 ${displayNumber(level)} 关 ${level.name}`, () => {
       it('数据校验通过（坐标/长度/方向/重叠/机关引用）', () => {
         expect(validateLevel(level)).toEqual([]);
       });
@@ -85,7 +90,22 @@ describe('27 个正式关卡', () => {
     });
   }
 
-  it('关卡分组符合教学规划（1-3 无机关，4-9 一组，10-12 两组，13-15 一组进阶，16-18 两组进阶，19 折线教学，20 大折线，21 调头教学，22 双向抉择，23 接力教学，24 接力长链，25 护送，26 灯与调头，27 终局灯屋）', () => {
+  it('三章节与显示顺序：基础疏通含折线/调头教学，闸门进阶 l04-l18，特殊箭头收尾', () => {
+    const idsOf = (chapter: string) =>
+      orderedLevels().filter((l) => l.chapter === chapter).map((l) => l.id);
+    expect(idsOf('basic')).toEqual(['l01', 'l02', 'l19', 'l21', 'l03']);
+    expect(idsOf('gate')).toEqual([
+      'l04', 'l05', 'l06', 'l07', 'l08', 'l09', 'l10', 'l11', 'l12', 'l13', 'l14', 'l15', 'l16', 'l17', 'l18',
+    ]);
+    expect(idsOf('special')).toEqual(['l20', 'l22', 'l23', 'l24', 'l25', 'l26', 'l27']);
+    // 折线教学在第 3 位、调头教学在第 4 位（早期特殊箭头体验）；章末挑战不叫"终局/毕业"。
+    expect(displayNumber(LEVELS[18])).toBe(3);
+    expect(displayNumber(LEVELS[20])).toBe(4);
+    expect(displayNumber(LEVELS[2])).toBe(5);
+    expect(LEVELS[2].name).toBe('疏通章末挑战');
+    expect(LEVELS[17].name).toBe('闸门章末挑战');
+    expect(LEVELS[11].name).toBe('双钥汇流');
+    // 机关数量规划不变（LEVELS 原始顺序）：1-3 无机关，4-9 一组，10-12 两组，13-15 一组，16-18 两组。
     for (const l of LEVELS.slice(0, 3)) expect(l.mechanisms).toHaveLength(0);
     for (const l of LEVELS.slice(3, 9)) expect(l.mechanisms).toHaveLength(1);
     for (const l of LEVELS.slice(9, 12)) expect(l.mechanisms).toHaveLength(2);
@@ -103,6 +123,19 @@ describe('27 个正式关卡', () => {
     expect(LEVELS[24].escort).toBe('e');
     expect(LEVELS[25].lamps).toHaveLength(1);
     expect(LEVELS[26].lamps).toHaveLength(2);
+  });
+
+  it('目标栏只写目标，不透露完整操作顺序；点灯关目标不含"必须点灯"', () => {
+    for (const level of LEVELS) {
+      expect(level.goal.length).toBeGreaterThan(0);
+      expect(level.goal).not.toMatch(/先.*再.*最后/);
+    }
+    expect(LEVELS[22].goal).toContain('虚线连接的两支箭头一起离场');
+    expect(LEVELS[24].goal).toContain('★');
+    for (const i of [25, 26]) {
+      expect(LEVELS[i].goal).not.toContain('灯');
+      expect(LEVELS[i].intro).toContain('可选');
+    }
   });
 
   it('大棋盘面积约为旧同类关两倍（7×7=49 → 8×12=96）', () => {
@@ -360,5 +393,30 @@ describe('护送与点灯', () => {
     const eff = { ...r, head: { x: 2, y: 3 }, dir: 'left' as const };
     expect(sweptCells(l26, eff).map(cellKey)).toContain('0,3');
     expect(turnedState.turned).toEqual(['r']);
+  });
+});
+
+describe('新手教学（不计入 27 关）', () => {
+  it('数据合法、小棋盘、三次点击可清空', () => {
+    expect(validateLevel(TUTORIAL_LEVEL)).toEqual([]);
+    expect(TUTORIAL_LEVEL.width * TUTORIAL_LEVEL.height).toBeLessThanOrEqual(15);
+    expect(LEVELS.map((l) => l.id)).not.toContain('tutorial');
+    const result = solve(TUTORIAL_LEVEL, initialState(TUTORIAL_LEVEL));
+    expect(result.solvable).toBe(true);
+    expect(result.solution).toHaveLength(3);
+    const order = result.solution!.map((op) => op.arrowId);
+    expect([...order].sort()).toEqual(['A', 'B', 'C']);
+    expect(order.indexOf('C')).toBeLessThan(order.indexOf('B'));
+  });
+
+  it('直观展示"一支箭头挡住另一支"：B 被 C 挡，移走 C 后 B 畅通', () => {
+    const s0 = initialState(TUTORIAL_LEVEL);
+    expect(checkMove(TUTORIAL_LEVEL, s0, 'B').blocker).toMatchObject({ kind: 'arrow', arrowId: 'C' });
+    expect(checkMove(TUTORIAL_LEVEL, s0, 'A').ok).toBe(true);
+    const s1 = applyMove(TUTORIAL_LEVEL, s0, 'C').state;
+    expect(checkMove(TUTORIAL_LEVEL, s1, 'B').ok).toBe(true);
+    const s2 = applyMove(TUTORIAL_LEVEL, s1, 'B').state;
+    const s3 = applyMove(TUTORIAL_LEVEL, s2, 'A').state;
+    expect(isWin(TUTORIAL_LEVEL, s3)).toBe(true);
   });
 });

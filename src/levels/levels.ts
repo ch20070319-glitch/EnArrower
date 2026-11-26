@@ -1,4 +1,4 @@
-import { LevelDef } from '../core/types';
+import { ChapterId, LevelDef } from '../core/types';
 
 /**
  * 固定规则回归样例（需求文档 §5）：宽 5 高 3，左上角 (0,0)。
@@ -7,7 +7,7 @@ import { LevelDef } from '../core/types';
  */
 export const SAMPLE_LEVEL: LevelDef = {
   id: 'fixture-sample',
-  index: 0,
+  chapter: 'gate',
   name: '规则样例',
   goal: '回归夹具：开关关门顺序',
   width: 5,
@@ -23,9 +23,10 @@ export const SAMPLE_LEVEL: LevelDef = {
 export const LEVELS: LevelDef[] = [
   {
     id: 'l01',
-    index: 1,
+    chapter: 'basic',
     name: '初次见面',
-    goal: '棋盘铺满了箭头：先请边缘朝外的离场，再逐层疏通。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '点击箭头，让它沿朝向整支滑出棋盘。',
     width: 7,
     height: 7,
     arrows: [
@@ -45,9 +46,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l02',
-    index: 2,
+    chapter: 'basic',
     name: '让一让',
-    goal: '铺满的棋盘互相挡路：先请边缘的箭头离场，腾出通道。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '被挡住不扣分：先请挡路的箭头离场。',
     width: 7,
     height: 7,
     arrows: [
@@ -68,9 +70,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l03',
-    index: 3,
-    name: '排好队',
-    goal: '长箭与弯箭铺满棋盘：找到链条的起点，依次疏通。',
+    chapter: 'basic',
+    name: '疏通章末挑战',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '折线箭身也会挡路：看清绳子的路线。',
     width: 7,
     height: 7,
     arrows: [
@@ -169,9 +172,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l04',
-    index: 4,
+    chapter: 'gate',
     name: '开门钥匙',
-    goal: '带 ◇ 的开关箭头离场后会切换闸门：先开门，再放行。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '带 ◇ 的开关箭头离场后会切换同组闸门。',
     width: 7,
     height: 7,
     arrows: [
@@ -198,9 +202,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l05',
-    index: 5,
+    chapter: 'gate',
     name: '两扇门',
-    goal: '一个开关控制同组所有闸门：一次离场，两处通行。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '一个开关控制同组所有闸门。',
     width: 7,
     height: 7,
     arrows: [
@@ -227,9 +232,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l06',
-    index: 6,
+    chapter: 'gate',
     name: '长箭出门',
-    goal: '开关箭头也可能被挡：先清路，再拿钥匙。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '开关箭头也可能被挡：先清路，再拿钥匙。',
     width: 7,
     height: 7,
     arrows: [
@@ -286,9 +292,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l07',
-    index: 7,
+    chapter: 'gate',
     name: '先走后关',
-    goal: '门现在开着，但开关离场后会关上：谁必须赶在关门前通过？',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '门现在开着；开关离场后会关上。',
     width: 7,
     height: 7,
     arrows: [
@@ -313,9 +320,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l08',
-    index: 8,
+    chapter: 'gate',
     name: '关门前清空',
-    goal: '开关自己也被挡着：规划一条让所有通路在关门前用完的顺序。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '规划一条让通路在关门前用完的顺序。',
     width: 7,
     height: 7,
     arrows: [
@@ -390,9 +398,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l09',
-    index: 9,
+    chapter: 'gate',
     name: '双开关',
-    goal: '同组两个开关各切换一次：数一数，门需要被切换几次？',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '同组两个开关各切换一次：数清奇偶。',
     width: 7,
     height: 7,
     arrows: [
@@ -426,9 +435,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l10',
-    index: 10,
+    chapter: 'gate',
     name: '两组钥匙',
-    goal: '◇ 与 ○ 互不影响：一组要开，一组要赶在关门前通过。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '◇ 与 ○ 互不影响。',
     width: 7,
     height: 7,
     arrows: [
@@ -452,9 +462,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l11',
-    index: 11,
+    chapter: 'gate',
     name: '交错通行',
-    goal: '两把钥匙各自开门，但拿钥匙的路也被挡着：理顺两条链。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '两把钥匙各自开门，拿钥匙的路也被挡着。',
     width: 7,
     height: 7,
     arrows: [
@@ -476,9 +487,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l12',
-    index: 12,
-    name: '毕业典礼',
-    goal: '三扇门、两把钥匙、八支箭头：把学到的一切串起来。',
+    chapter: 'gate',
+    name: '双钥汇流',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '三扇门、两把钥匙：把学到的串起来。',
     width: 7,
     height: 7,
     arrows: [
@@ -525,9 +537,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l13',
-    index: 13,
+    chapter: 'gate',
     name: '回马枪',
-    goal: '门开着的时间只有这一次：两支箭都要赶在关门前通过，而开关还被挡着。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '门开着的时间只有这一次。',
     width: 7,
     height: 7,
     arrows: [
@@ -549,9 +562,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l14',
-    index: 14,
+    chapter: 'gate',
     name: '双闸连开',
-    goal: '一把钥匙开两扇门，但钥匙自己被挡：先清路，再一次性放行两条线。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '一把钥匙开两扇门，钥匙自己被挡。',
     width: 7,
     height: 7,
     arrows: [
@@ -574,9 +588,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l15',
-    index: 15,
+    chapter: 'gate',
     name: '开关接力',
-    goal: '同组两个开关接力切换：数清奇偶，让需要的箭总在开门时通过。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '同组两个开关接力切换：数清奇偶。',
     width: 7,
     height: 7,
     arrows: [
@@ -597,9 +612,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l16',
-    index: 16,
+    chapter: 'gate',
     name: '错钥',
-    goal: '一组要开、一组要关：拿错顺序，另一组的通路就永远关上。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '一组要开、一组要关。',
     width: 7,
     height: 7,
     arrows: [
@@ -623,9 +639,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l17',
-    index: 17,
+    chapter: 'gate',
     name: '双锁互衔',
-    goal: '两把钥匙互相衔着：先开 ○ 才能拿 ◇，理清跨组链条。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '两把钥匙互相衔着：理清跨组链条。',
     width: 7,
     height: 7,
     arrows: [
@@ -649,9 +666,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l18',
-    index: 18,
-    name: '终局回环',
-    goal: '三扇门九支箭：开关的开关、赶门的箭，全部串成一条链。',
+    chapter: 'gate',
+    name: '闸门章末挑战',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '开关的开关、赶门的箭，串成一条链。',
     width: 7,
     height: 7,
     arrows: [
@@ -677,9 +695,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l19',
-    index: 19,
+    chapter: 'basic',
     name: '折弯初识',
-    goal: '折线箭头像绳子：头部先出，弯折处依次跟出。它的箭身也会挡别人的路。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '折线箭头像绳子：头部先出，弯折处依次跟出。',
     width: 7,
     height: 7,
     arrows: [
@@ -806,9 +825,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l20',
-    index: 20,
+    chapter: 'special',
     name: '长湾疏流',
-    goal: '大棋盘两条折线湾：先放走湾口的箭，钥匙和长队才有的路。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '大棋盘折线湾：湾口的箭先走。',
     width: 8,
     height: 12,
     arrows: [
@@ -861,9 +881,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l21',
-    index: 21,
+    chapter: 'basic',
     name: '调头初试',
-    goal: '⇄ 箭头右边被闸门封死，开关又被它自己挡着：点击选中，先调头，再向左发射。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '⇄ 箭头点箭尾徽记原地调头，再发射。',
     width: 7,
     height: 7,
     arrows: [
@@ -890,9 +911,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l22',
-    index: 22,
+    chapter: 'special',
     name: '双向抉择',
-    goal: '两侧都被封住：先放 ○ 开关疏通左路，再让 ⇄ 箭头调头向左。右路永远打不开。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '两侧都被封住时，调头换一条路。',
     width: 7,
     height: 7,
     arrows: [
@@ -920,9 +942,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l23',
-    index: 23,
+    chapter: 'special',
     name: '接力过桥',
-    goal: 'A 带 B 一起过桥：B 被 ◇ 闸门挡住。先放开关 C 开门，再点击 A 启动接力。',
+    goal: '让虚线连接的两支箭头一起离场，清空棋盘。',
+    intro: '点击领头箭启动接力，搭档会跟着离场。',
     width: 7,
     height: 7,
     arrows: [
@@ -943,9 +966,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l24',
-    index: 24,
+    chapter: 'special',
     name: '接力长链',
-    goal: '两组接力排成链：先开 ◇ 门送 A/B，B 让出位置后 ○ 开关才能走，最后送 C/D。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '两组接力排成链。',
     width: 8,
     height: 8,
     arrows: [
@@ -975,9 +999,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l25',
-    index: 25,
+    chapter: 'special',
     name: '护送星标',
-    goal: '送出 ★ 箭头即可通关，其他箭头可以留在棋盘上。先开门、再让路。',
+    goal: '把 ★ 箭头送出棋盘即通关，其余箭头可留在场上。',
+    intro: '★ 是护送目标。',
     width: 7,
     height: 7,
     arrows: [
@@ -999,9 +1024,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l26',
-    index: 26,
+    chapter: 'special',
     name: '灯与调头',
-    goal: '向右可以直接走；想点亮小屋，先放 c，再让 ⇄ 调头向左经过灯。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '调头后经过灯格可点亮小屋（可选）。',
     width: 7,
     height: 7,
     arrows: [
@@ -1023,9 +1049,10 @@ export const LEVELS: LevelDef[] = [
   },
   {
     id: 'l27',
-    index: 27,
+    chapter: 'special',
     name: '终局灯屋',
-    goal: '点亮两盏灯再清空棋盘：接力 B 经过下方灯，⇄ 向右经过上方灯。',
+    goal: '清空棋盘：让所有箭头离场。',
+    intro: '离场路线经过灯格即点亮（可选）。',
     width: 8,
     height: 8,
     arrows: [
@@ -1056,4 +1083,48 @@ export const LEVELS: LevelDef[] = [
 
 export function levelById(id: string): LevelDef | undefined {
   return LEVELS.find((l) => l.id === id);
+}
+
+/** 一次性新手教学：小棋盘、三次点击，直观看到"移走挡路箭道路就通"。不计入 27 关。 */
+export const TUTORIAL_LEVEL: LevelDef = {
+  id: 'tutorial',
+  chapter: 'basic',
+  name: '新手教学',
+  goal: '让所有箭头离场。',
+  intro: 'B 被 C 挡住了：先移走 C，B 的路就通了。',
+  width: 5,
+  height: 3,
+  arrows: [
+    { id: 'A', head: { x: 0, y: 0 }, dir: 'right', len: 1 },
+    { id: 'B', head: { x: 0, y: 2 }, dir: 'right', len: 1 },
+    { id: 'C', head: { x: 2, y: 2 }, dir: 'up', len: 1 },
+  ],
+  mechanisms: [],
+};
+
+export const CHAPTERS: { id: ChapterId; title: string; blurb: string }[] = [
+  { id: 'basic', title: '基础疏通', blurb: '直线、折线与第一次调头：学会让箭头离场。' },
+  { id: 'gate', title: '闸门进阶', blurb: '开关与闸门的顺序博弈。' },
+  { id: 'special', title: '特殊箭头', blurb: '接力、护送与点灯的进阶挑战。' },
+];
+
+/** 显示顺序（与关卡 id 解耦）：折线教学 l19 与调头教学 l21 前移，接力/点灯留作进阶。 */
+export const DISPLAY_ORDER: string[] = [
+  'l01', 'l02', 'l19', 'l21', 'l03',
+  'l04', 'l05', 'l06', 'l07', 'l08', 'l09', 'l10', 'l11', 'l12', 'l13', 'l14', 'l15', 'l16', 'l17', 'l18',
+  'l20', 'l22', 'l23', 'l24', 'l25', 'l26', 'l27',
+];
+
+export function orderedLevels(): LevelDef[] {
+  return DISPLAY_ORDER.map((id) => levelById(id)!);
+}
+
+/** 显示编号（第 X 关）= 显示顺序中的位置，与 id 无关。 */
+export function displayNumber(level: LevelDef): number {
+  return DISPLAY_ORDER.indexOf(level.id) + 1;
+}
+
+export function nextLevelId(levelId: string): string | undefined {
+  const i = DISPLAY_ORDER.indexOf(levelId);
+  return i >= 0 && i + 1 < DISPLAY_ORDER.length ? DISPLAY_ORDER[i + 1] : undefined;
 }

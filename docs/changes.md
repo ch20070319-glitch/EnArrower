@@ -143,3 +143,28 @@
 - 公网实测：内嵌浏览器加载/进入第 1 关/点箭身发射/存档更新/无跨域资源；Playwright 直连公网截屏 21 目检；sites.txt 记录。
 - 论坛发布（赛题截图后半句）本次未要求、未执行。
 - 本轮不做最终报告与整体收尾（用户指令：待游戏内容定稿后再做）。
+
+## 第六轮修改（2026-11-26 用户指令：体验更新 + 1.1.0 + GitHub 推送）
+
+### 阶段 M：目标/提示/节奏/首页/点灯可选 + 1.1.0 打包推送
+- src/core/types.ts：LevelDef 去掉 index，新增 chapter（ChapterId = basic/gate/special）与可选 intro；GameState 不变。
+- src/levels/levels.ts：27 关 goal 重写为纯目标（不透露完整顺序），新增 intro 玩法说明；
+  改名 l03 疏通章末挑战、l12 双钥汇流、l18 闸门章末挑战；箭头/机关数据未动。
+  新增 CHAPTERS（基础疏通/闸门进阶/特殊箭头）、DISPLAY_ORDER（l19→显示3、l21→显示4 前移；其余按章顺延）、
+  orderedLevels/displayNumber/nextLevelId；新增 TUTORIAL_LEVEL（5×3、A/B/C 三箭、三次点击，id='tutorial'，不计入 LEVELS）。
+- src/storage/save.ts：schemaVersion 保持 1；SaveData 新增可选 tutorialDone/lampBest（旧存档缺省 false/[]，不追认全亮）；
+  current 可指向教学关（levelForSave），教学不污染 unlocked；recordCompletion 改按 DISPLAY_ORDER 解锁下一关，教学只记 tutorialDone；
+  loadSave 补齐重排解锁缺口（只增不减）；新增 recordLampBest（只增不减）。
+- src/ui/app.ts：首页主按钮五态（开始游戏/继续第X关/进入第X关/继续重玩第X关/回顾关卡），文字与去向一致；
+  完成计数只数不同正式关；选关按三章渲染（data-level-id、显示编号、小屋全亮标记）；
+  入场状态栏留空（目标/玩法说明/状态三分工）；分级提示（stateKey 变化重置：第一次观察线索不点名，第二次才点名具体操作）；
+  接力受阻改 flashRelayBlocked（先虚线后挡路物+短文字），成功 holdRelayLink 贯穿动画；
+  灯关 #game-optional 即时进度（点亮/撤销/重开），全亮通关记 lampBest；教学跳过按钮与完成后清 current。
+- src/ui/board.ts：新增 relayHoldLayer（render 不清空）、flashRelayBlocked、holdRelayLink/clearRelayHold。
+- index.html / src/style.css：新增 #game-intro、#game-optional、#btn-tutorial-skip、#btn-tutorial-replay、章节/标记样式。
+- 测试：tests/unit 新增教学/重排兼容/lampBest/解锁顺序用例（176 项）；tests/browser 助手改 level-id + data-level-id，
+  AC23/AC27 下一关断言随新顺序迁移（长湾疏流/双向抉择），AC38/AC39 文案断言迁移（小屋全部点亮），
+  新增 AC45–AC57（首玩/跳过/老玩家/旧存档重排/主按钮四态/计数/分级提示/接力受阻与虚线/点灯进度与最佳成绩/章节布局），60 用例 ×3 视口=180。
+  首跑 AC55 失败：期望「进入第9关」写错——旧存档重排后 l19/l21 已解锁未完成，按显示顺序下一未完成是第3关；修正断言（应用行为正确）后全过。
+- package.json：version 1.0.0 → 1.1.0。scripts/exe-smoke.mjs：1.1.0 exe 冒烟（首页/教学/接力/灯关/零外联/重启恢复）。
+- 复测：176 单元 / 28 重放（合计 35.4ms、最慢 l10 6.2ms）/ 180 浏览器（60×3 视口，5.7min）/ build 全通过。

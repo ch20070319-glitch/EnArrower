@@ -15,6 +15,15 @@ const allUnlocked = JSON.stringify({
   completed: ['l01', 'l02', 'l03'],
   unlocked: Array.from({ length: 27 }, (_, i) => `l${String(i + 1).padStart(2, '0')}`),
   current: null,
+  tutorialDone: true,
+  lampBest: ['l26'],
+});
+const freshOldPlayer = JSON.stringify({
+  schemaVersion: 1,
+  completed: [],
+  unlocked: ['l01'],
+  current: null,
+  tutorialDone: true,
 });
 
 const browser = await chromium.launch();
@@ -30,7 +39,7 @@ async function clickArrow(page, id, wait = 700) {
 
 async function openLevel(page, n) {
   await page.click('#btn-levels');
-  await page.click(`.level-tile:nth-child(${n})`);
+  await page.click(`.level-tile[data-level-id="l${String(n).padStart(2, '0')}"]`);
   await page.waitForTimeout(500);
 }
 
@@ -73,7 +82,7 @@ await shot('02-home-mobile-360', { width: 360, height: 780, mobile: true });
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 860 }, deviceScaleFactor: 2 });
   const page = await ctx.newPage();
   await page.goto(BASE);
-  await page.evaluate((k) => localStorage.removeItem(k), KEY);
+  await page.evaluate(({ k, v }) => localStorage.setItem(k, v), { k: KEY, v: freshOldPlayer });
   await page.reload();
   await page.click('#btn-start');
   await page.waitForTimeout(500);
@@ -92,7 +101,7 @@ await shot('02-home-mobile-360', { width: 360, height: 780, mobile: true });
   await page.click('#btn-levels');
   await page.waitForTimeout(1100);
   await page.screenshot({ path: `${OUT}/04-levels-desktop.png` });
-  await page.click('.level-tile:nth-child(12)');
+  await page.click('.level-tile[data-level-id="l12"]');
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${OUT}/05-game-l12-desktop.png` });
   // 查看机关模式预览
@@ -115,7 +124,7 @@ await shot('02-home-mobile-360', { width: 360, height: 780, mobile: true });
   await page.evaluate(({ k, v }) => localStorage.setItem(k, v), { k: KEY, v: allUnlocked });
   await page.reload();
   await page.click('#btn-levels');
-  await page.click('.level-tile:nth-child(18)');
+  await page.click('.level-tile[data-level-id="l18"]');
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${OUT}/09-game-l18-desktop.png` });
   await ctx.close();
@@ -127,7 +136,7 @@ await shot('02-home-mobile-360', { width: 360, height: 780, mobile: true });
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 860 }, deviceScaleFactor: 2 });
   const page = await ctx.newPage();
   await page.goto(BASE);
-  await page.evaluate((k) => localStorage.removeItem(k), KEY);
+  await page.evaluate(({ k, v }) => localStorage.setItem(k, v), { k: KEY, v: freshOldPlayer });
   await page.reload();
   await page.click('#btn-start');
   // 第三轮铺满后 l01 共 11 支箭：按求解器解法顺序清空
@@ -148,7 +157,7 @@ await shot('02-home-mobile-360', { width: 360, height: 780, mobile: true });
   await page.evaluate(({ k, v }) => localStorage.setItem(k, v), { k: KEY, v: allUnlocked });
   await page.reload();
   await page.click('#btn-levels');
-  await page.click('.level-tile:nth-child(11)');
+  await page.click('.level-tile[data-level-id="l11"]');
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${OUT}/08-game-l11-mobile-360.png` });
   await ctx.close();

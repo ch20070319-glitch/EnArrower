@@ -11,7 +11,7 @@ import {
 import { ArrowDef, Dir, LevelDef } from '../../src/core/types';
 
 function miniLevel(arrows: ArrowDef[], mechanisms: LevelDef['mechanisms'] = [], w = 6, h = 4): LevelDef {
-  return { id: 'test', index: 0, name: 'test', goal: '', width: w, height: h, arrows, mechanisms };
+  return { id: 'test', chapter: 'basic', name: 'test', goal: '', width: w, height: h, arrows, mechanisms };
 }
 
 describe('占用格推导', () => {

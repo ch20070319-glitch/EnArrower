@@ -1,7 +1,7 @@
 {
   "name": "enarrower",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "description": "EnArrower - 轻松解压的箭头顺序解谜网页游戏",
   "main": "electron/main.cjs",

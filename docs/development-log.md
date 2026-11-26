@@ -114,3 +114,9 @@ GitHub Releases（2026-11-25，用户指令「把exe挂到GitHub Releases」）�
 内嵌浏览器截屏视口不可见（非站点缺陷）→ Playwright 直连公网补截屏目检；实测后关闭临时页。
 记录：evidence/test-results/sites.txt、截图 21、requirements §12、changes 阶段 L、acceptance AC44。
 本轮不做最终报告与整体收尾。
+## 第六轮修改（2026-11-26 用户指令；阶段 M）
+目标：体验更新（目标/分级提示/接力反馈/新手教学/节奏重排/首页五态/点灯可选）+ 1.1.0 打包 + GitHub 推送与 Release。
+工作：types/levels/save/app/board/index/style 修改；DISPLAY_ORDER 与 id 解耦；教学关不计 27；schemaVersion 保持 1 兼容旧存档。
+检查：单元 176、重放 28、浏览器 180（60 用例 ×3 视口）全通过；AC55 首跑断言写错（期望第9关，实际应为第3关）修正后复测；
+dist:win 产出 1.1.0 exe 后 CDP 冒烟（首页入口/接力关/灯关/零外联/重启恢复）。
+记录：requirements §13、changes 阶段 M、acceptance AC45+、evidence/test-results（unit/levels/browser/exe-smoke-1.1.0）。

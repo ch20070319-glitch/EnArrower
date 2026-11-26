@@ -2,23 +2,24 @@
 
 所有证据均为实际执行产物。截图为 Playwright 真实渲染截取并逐张目检；移动视口为仿真，非真机。
 
-## 测试结果（evidence/test-results/，第三轮阶段 J 刷新；第四轮阶段 K 复跑并增 desktop.txt）
+## 测试结果（evidence/test-results/，第六轮阶段 M 刷新；第四轮 desktop.txt、第五轮 sites.txt 沿用）
 | 文件 | 内容 | 结果 |
 |---|---|---|
-| unit.txt | `npm test`（Vitest，tests/unit 4 文件） | 166 passed |
-| levels.txt | `npm run validate:levels`（27 关 + 样例，校验+求解+逐步重放+逐关覆盖率与耗时） | 28/28 通过；无机关无灯关覆盖 49/49；第四轮复跑耗时合计 19.3ms、最慢 l10 3.6ms（本机实测） |
-| browser.txt | `npm run test:browser`（Playwright，42 用例 × desktop/mobile-390/mobile-360） | 126 passed |
-| build.txt | `npm run build`（tsc --noEmit && vite build） | 成功，无类型错误 |
+| unit.txt | `npm test`（Vitest，tests/unit 4 文件） | 176 passed（第六轮：+教学/点灯最佳/重排兼容用例） |
+| levels.txt | `npm run validate:levels`（27 关 + 样例，校验+求解+逐步重放+逐关覆盖率与耗时） | 28/28 通过；无机关无灯关覆盖 49/49 |
+| browser.txt | `npm run test:browser`（Playwright，60 用例 × desktop/mobile-390/mobile-360） | 180 passed（第六轮；AC55 首跑期望值写错修正后全过） |
+| build.txt | `npm run build` + 第六轮 `npm run dist:win` 日志（含产物字节数与 sha256 记录行） | 成功，无类型错误；portable 退出码 0 |
+| exe-smoke-1.1.0.txt | 第六轮 1.1.0 portable exe 冒烟（CDP：首页/教学/跳过/接力受阻与成功/单撤销/灯可选进度/零外联/正常退出重启恢复） | 全过；exe 110,487,368 字节 sha256 763218e5…751；截图 22–27 目检 |
 | desktop.txt | 第四轮 `npm run dist:win` + portable exe 冒烟（CDP 抓窗：启动/app:// 加载/发射存档/重启恢复/零外联） | exe 110,485,570 字节 sha256 8325e4e6…338e；冒烟各项实测通过；他机/SmartScreen 未验证 |
 | sites.txt | 第五轮 Qoder Sites 部署链返回 + 公网浏览器实测（加载/进入/发射/存档/无跨域资源） | published=true、public；公网 URL 实测通过；论坛发布未执行 |
 
-## 截图（evidence/screenshots/；第三轮 18 张全重截并目检关键张，18 为第三轮新增）
+## 截图（evidence/screenshots/；第六轮 01–18 全重截并目检 04/17，22–27 为第六轮 exe 新增）
 | 文件 | 内容 |
 |---|---|
 | 01-home-desktop.png | 首页（桌面 1280，文案 27 关） |
 | 02-home-mobile-360.png | 首页（360 移动仿真） |
 | 03-game-l01-desktop.png | 第 1 关棋盘（桌面，铺满 49/49、11 箭） |
-| 04-levels-desktop.png | 选关页 27 格（完成/解锁/锁定三态，1280×1080） |
+| 04-levels-desktop.png | 选关页三章节（基础疏通5/闸门进阶15/特殊箭头7，显示序编号，26 带「小屋全亮」标记，1280×1080） |
 | 05-game-l12-desktop.png | 第 12 关双组机关棋盘（加密后 12 箭） |
 | 06-inspect-preview.png | 查看机关模式预览（闸门高亮 + 将开启/将关闭） |
 | 07-win-desktop.png | 通关反馈覆盖层（l01 铺满后 11 步清空） |
@@ -31,11 +32,17 @@
 | 14-relay-mid-animation.png | 接力中途帧：A 已离场、B 仍在场（顺序动画证据） |
 | 15-game-l25-escort.png | 第 25 关护送 ★ 金色徽章 |
 | 16-game-l26-lamp-lit.png | 第 26 关徽记调头向左经过灯后小屋点亮 |
-| 17-win-l27-all-lamps.png | 第 27 关全亮通关弹窗「点亮小屋：所有灯都亮了！」（末关无下一关） |
+| 17-win-l27-all-lamps.png | 第 27 关全亮通关弹窗「可选挑战达成：小屋全部点亮！」（末关无下一关） |
 | 18-game-l21-badge-turn.png | 第 21 关 ⇄ 尾格徽记直接点击调头后向左（不选中、底部无调头按钮） |
 | 19-desktop-exe.png | 第四轮：portable exe 窗口内第 1 关中途（a/b 已离场、9 支），CDP 抓窗目检 |
 | 20-desktop-exe-resume.png | 第四轮：exe 重启后继续存档恢复第 1 关 9 支中途局面 |
 | 21-sites-public.png | 第五轮：Playwright 直连 Qoder Sites 公网 URL，第 1 关满铺 11 支（含 Made with Qoder 角标），目检 |
+| 22-exe-110-home.png | 第六轮：1.1.0 exe 全新玩家首页「开始游戏」，目检 |
+| 23-exe-110-tutorial.png | 第六轮：exe 新手教学 5×3（目标/玩法说明/跳过教学按钮），目检 |
+| 24-exe-110-relay-blocked.png | 第六轮：exe l23 接力受阻——虚线高亮+挡路闸门红框+短文字，目检 |
+| 25-exe-110-relay-done.png | 第六轮：exe l23 接力完成 A/B/C 离场、门开、history=2，目检 |
+| 26-exe-110-lamp.png | 第六轮：exe l26 调头向左点灯「可选 · 点亮小屋 1/1」，目检 |
+| 27-exe-110-resume.png | 第六轮：exe 正常退出重启后恢复 l26 中途（撤销后 0/1、r 已调头），目检 |
 
 ## API 记录（evidence/api/）
 - review-2026-11-16T08-42-29-353Z.json：`npm run review:deepseek` 实跑记录，status=not_called（环境无 DEEPSEEK_API_KEY）。**真实 API 调用尚未发生**；配置密钥后重跑将生成脱敏请求/响应/usage 记录。raw/ 目录已 gitignore。
@@ -91,3 +98,10 @@
 - 上传内容：dist/（index.html + assets/index-Dcgy5xMs.js + assets/index-DxgN4poB.css + favicon.svg），与第四轮 build 产物一致；无 Function/数据库/Secret。
 - 描述符：.EnArrower · 箭头解谜.qoder.site（首次 pending 未落盘，同 action 同输入重试 prepare 恢复 written；未重复发布）。
 - 公网实测见 sites.txt 与截图 21；内嵌浏览器截屏视口不可见改 Playwright 补截屏，已如实记录。
+## 第六轮（2026-11-26，阶段 M：体验更新 + 1.1.0）
+- 复测：176 单元 / 28 重放 / 180 浏览器（60 用例 ×3 视口）/ build 全通过；01–18 截图全重截（capture-evidence.mjs 选择器随章节嵌套与教学入口更新）。
+- 1.1.0 打包：`npm run dist:win` 退出码 0；release/EnArrower-1.1.0-portable.exe 110,487,368 字节，
+  sha256 763218e53778cfc2d88fae2350f0991f2d172726ee1dfa575b971a493fc43751（build.txt 记录行）。
+- exe 冒烟：exe-smoke-1.1.0.txt 全过（首页/教学/跳过/接力受阻与成功/单撤销/灯可选/零外联/正常退出重启恢复）；截图 22–27 目检。
+  重启恢复按正常退出路径实测；强杀提交窗口限制见 docs/issues.md I27，不写「断电恢复通过」。
+- 提交与推送：见下「仓库推送（第六轮）」（提交后回填哈希）。

@@ -1,0 +1,29 @@
+第六轮 1.1.0 portable exe 冒烟实测
+日期：2026-11-26　机器：本机 win32 x64
+
+启动 release/EnArrower-1.1.0-portable.exe（pid 39016，--remote-debugging-port=9222）
+CDP page 目标：url=app://local/index.html title=
+全新玩家首页主按钮：「开始游戏」（期望 开始游戏）
+截图 evidence/screenshots/22-exe-110-home.png
+点击开始游戏 → 「新手教学」（期望 新手教学）
+跳过教学按钮可见：true
+截图 evidence/screenshots/23-exe-110-tutorial.png
+跳过教学 → 「第 1 关 · 初次见面」（期望 第 1 关 · 初次见面）
+l23 目标栏：「让虚线连接的两支箭头一起离场，清空棋盘。」
+点领头 A（B 被闸门挡）：状态「接力没启动：B 被 ◇ 闸门挡住，整队留在原地。先开门再试。」；虚线高亮数=1
+挡路闸门高亮数=1（期望 ≥1）
+截图 evidence/screenshots/24-exe-110-relay-blocked.png
+开门后接力：A/B/C 全部离场=true；历史步数=2（期望 2：C + 一次接力）
+截图 evidence/screenshots/25-exe-110-relay-done.png
+一次撤销恢复 A/B=true（C 仍离场）
+l26 可选进度入场：「可选 · 点亮小屋 0/1」（期望 可选 · 点亮小屋 0/1）
+l26 主目标：「清空棋盘：让所有箭头离场。」（不含"灯"字强制要求）
+调头向左发射后：「可选 · 点亮小屋 1/1」；点亮灯数=1（期望 1/1 与 1）
+截图 evidence/screenshots/26-exe-110-lamp.png
+撤销后进度回退：「可选 · 点亮小屋 0/1」（期望 0/1）
+http(s) 资源记录数=0（期望 0）
+window.close() 后进程已退出（正常退出路径）
+重启后主按钮：「继续第 26 关」；存档与重启前一致=true
+重启恢复进入：「第 26 关 · 灯与调头」
+截图 evidence/screenshots/27-exe-110-resume.png
+冒烟全部通过；exe 进程已关闭。

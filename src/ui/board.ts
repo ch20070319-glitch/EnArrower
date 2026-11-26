@@ -36,6 +36,7 @@ export class BoardView {
   private arrowsLayer: SVGGElement;
   private gatesLayer: SVGGElement;
   private relayLayer: SVGGElement;
+  private relayHoldLayer: SVGGElement;
   private lampLayer: SVGGElement;
   private arrowNodes = new Map<string, SVGGElement>();
   private gateNodes = new Map<string, SVGGElement>();
@@ -94,10 +95,12 @@ export class BoardView {
 
     this.gatesLayer = el('g');
     this.relayLayer = el('g', { 'aria-hidden': 'true' });
+    this.relayHoldLayer = el('g', { 'aria-hidden': 'true' });
     this.lampLayer = el('g');
     this.arrowsLayer = el('g');
     this.svg.appendChild(this.gatesLayer);
     this.svg.appendChild(this.relayLayer);
+    this.svg.appendChild(this.relayHoldLayer);
     this.svg.appendChild(this.lampLayer);
     this.svg.appendChild(this.arrowsLayer);
     container.appendChild(this.svg);
@@ -389,6 +392,34 @@ export class BoardView {
       link.classList.add('is-active');
       this.later(() => link.classList.remove('is-active'), 1300);
     }
+  }
+
+  /** 接力受阻：先亮虚线说明整队关系，再高亮真正挡路的闸门/箭头；双方都不动。 */
+  flashRelayBlocked(
+    leaderId: string,
+    failedId: string,
+    blocker: { kind: string; arrowId?: string; cell?: { x: number; y: number } },
+  ): void {
+    this.flashHint(leaderId);
+    const link = this.relayNodes.get(leaderId);
+    if (link) {
+      link.classList.add('is-active');
+      this.later(() => link.classList.remove('is-active'), 650);
+    }
+    this.later(() => this.flashBlocked(failedId, blocker), 500);
+  }
+
+  /** 接力成功动画期间保留虚线（render 会重建 relayLayer，_hold 层不受影响）。 */
+  holdRelayLink(leaderId: string): void {
+    const link = this.relayNodes.get(leaderId);
+    if (!link) return;
+    const clone = link.cloneNode(true) as SVGLineElement;
+    clone.classList.add('is-active');
+    this.relayHoldLayer.appendChild(clone);
+  }
+
+  clearRelayHold(): void {
+    this.relayHoldLayer.innerHTML = '';
   }
 
   preview(group: GroupId, willOpen: boolean, sourceId?: string): void {

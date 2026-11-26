@@ -83,7 +83,8 @@
           <span id="levels-progress" class="subbar-meta"></span>
         </header>
         <div id="level-grid" class="level-grid"></div>
-        <p class="levels-note">完成上一关即可解锁下一关；已解锁的关卡可以随时重玩。</p>
+        <button id="btn-tutorial-replay" class="btn btn--ghost" type="button">重看新手教学</button>
+        <p class="levels-note">完成上一关即可解锁下一关；已解锁的关卡可以随时重玩。带「小屋全亮」标记的关卡曾点亮全部灯。</p>
       </section>
 
       <!-- 游戏 -->
@@ -95,6 +96,8 @@
           <div class="subbar-center">
             <h2 id="game-title" class="subbar-title"></h2>
             <p id="game-goal" class="subbar-goal"></p>
+            <p id="game-intro" class="subbar-intro" hidden></p>
+            <p id="game-optional" class="subbar-optional" hidden></p>
           </div>
           <span id="game-count" class="subbar-meta" aria-label="剩余箭头数"></span>
         </header>
@@ -114,6 +117,7 @@
         <p id="status" class="status" role="status" aria-live="polite"></p>
 
         <div class="controls" role="toolbar" aria-label="游戏操作">
+          <button id="btn-tutorial-skip" class="btn btn--ghost" type="button" hidden>跳过教学</button>
           <button id="btn-undo" class="btn btn--control" type="button">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5L3 10l5 5M3 10h11a6 6 0 0 1 0 12h-3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             撤销
