@@ -105,3 +105,14 @@
 - exe 冒烟：exe-smoke-1.1.0.txt 全过（首页/教学/跳过/接力受阻与成功/单撤销/灯可选/零外联/正常退出重启恢复）；截图 22–27 目检。
   重启恢复按正常退出路径实测；强杀提交窗口限制见 docs/issues.md I27，不写「断电恢复通过」。
 - 提交与推送：见下「仓库推送（第六轮）」（提交后回填哈希）。
+
+## 仓库推送（第六轮，2026-11-26 实际执行）
+- GitHub：https://github.com/ch20070319-glitch/EnArrower ；main 无分支保护（REST 404 Branch not protected），直推无需 PR。
+- `git push origin main`：46bf437..8053dd1；`git ls-remote origin main` = 8053dd14d1e070527ce12da8f4aa7ba56f41ddf3，与本地 HEAD 一致。
+- 提交 8053dd1 仅含第六轮源码/关卡/测试/脚本/文档/证据（50 文件）；不含 docs/tianchi-forum-draft.md（无关草稿）、release/、node_modules、.env 与密钥（diff 扫描仅文档提及键名）。
+- tag `v1.1.0`（annotated c2be297）peel 后指向 8053dd14d1e070527ce12da8f4aa7ba56f41ddf3（实测通过的提交），已推送。
+- GitHub Releases：release id 459405314（draft=false、prerelease=false），https://github.com/ch20070319-glitch/EnArrower/releases/tag/v1.1.0 ；
+  附件 `EnArrower-1.1.0-portable.exe`（asset id 795869926，state=uploaded，110,487,368 字节），
+  下载地址 https://github.com/ch20070319-glitch/EnArrower/releases/download/v1.1.0/EnArrower-1.1.0-portable.exe ；
+  公网完整下载 HTTP 200、110,487,368 字节，回读 sha256=763218e53778cfc2d88fae2350f0991f2d172726ee1dfa575b971a493fc43751，与本地 exe 一致。
+- Release 正文含更新内容、实测摘要、存档位置、未签名 SmartScreen 提示与强杀提交窗口限制、sha256 与提交号。
